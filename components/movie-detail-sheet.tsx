@@ -2,7 +2,7 @@
 
 import { Drawer } from "vaul"
 import Image from "next/image"
-import { X, Plus, Check, BookmarkCheck, Bookmark, Star } from "lucide-react"
+import { X, Plus, Check, BookmarkCheck, Bookmark, Star, Play } from "lucide-react"
 import { posterUrl, backdropUrl, releaseYear } from "@/lib/tmdb"
 import type { TMDBMovie, Movie } from "@/lib/types"
 import {
@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { useTrailer } from "@/hooks/use-trailer"
 
 const GENRE_MAP: Record<number, string> = {
   28: "Action", 12: "Adventure", 16: "Animation", 35: "Comedy",
@@ -32,6 +33,7 @@ interface MovieDetailSheetProps {
 
 export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheetProps) {
   const status = useWatchlistStatus(movie?.id ?? 0)
+  const { data: trailerUrl } = useTrailer(movie?.id ?? null)
   const addMutation = useAddToWatchlist()
   const watchedMutation = useMarkWatched()
   const notInterestedMutation = useMarkNotInterested()
@@ -168,8 +170,25 @@ export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheet
                 </p>
               )}
 
+              {/* trailer button */}
+              {trailerUrl && (
+                <a
+                  href={trailerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    "flex items-center justify-center gap-2 mt-4 w-full rounded-xl h-10",
+                    "bg-red-600/90 hover:bg-red-600 active:bg-red-700 transition-colors",
+                    "text-white text-sm font-semibold"
+                  )}
+                >
+                  <Play className="size-4 fill-current" />
+                  Watch Trailer
+                </a>
+              )}
+
               {/* action buttons */}
-              <div className="flex gap-2 mt-5">
+              <div className="flex gap-2 mt-3">
                 {status === null ? (
                   <>
                     <Button
