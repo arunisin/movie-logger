@@ -44,10 +44,13 @@ A self-hostable, invite-only PWA for tracking movies you want to watch and have 
 
 ---
 
-### 1. Clone & install
+### 1. Fork & clone
+
+1. Click **Fork** at the top-right of this page to create your own copy of the repo.
+2. Clone your fork and install dependencies:
 
 ```bash
-git clone https://github.com/arunisin/movie-logger.git
+git clone https://github.com/<your-username>/movie-logger.git
 cd movie-logger
 pnpm install
 ```
@@ -123,8 +126,8 @@ Open [http://localhost:3000](http://localhost:3000). Sign up using your `ADMIN_E
 
 ### 7. Deploy to Vercel
 
-1. Push your repo to GitHub.
-2. Go to [vercel.com/new](https://vercel.com/new) and import the repository.
+1. Push your fork to GitHub (it's already there if you forked; just push any local changes).
+2. Go to [vercel.com/new](https://vercel.com/new) and import your forked repository.
 3. Add all environment variables under **Settings → Environment Variables** in the Vercel dashboard. Make sure to add every variable from the table above.
 4. Click **Deploy**.
 
