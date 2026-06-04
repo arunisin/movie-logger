@@ -234,3 +234,7 @@ CREATE POLICY "Authenticated users can update movies"
 -- Release notification thresholds per user (days before release: 1, 2, 3, 7)
 ALTER TABLE profiles
   ADD COLUMN IF NOT EXISTS notification_thresholds INTEGER[] NOT NULL DEFAULT '{1,7}';
+
+-- Autoplay trailer preference
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS autoplay_trailer BOOLEAN NOT NULL DEFAULT true;

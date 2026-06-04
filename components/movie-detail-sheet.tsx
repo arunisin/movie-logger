@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { useTrailer } from "@/hooks/use-trailer"
+import { useProfile } from "@/hooks/use-profile"
 import { useState, useEffect } from "react"
 
 const GENRE_MAP: Record<number, string> = {
@@ -35,18 +36,21 @@ interface MovieDetailSheetProps {
 export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheetProps) {
   const status = useWatchlistStatus(movie?.id ?? 0)
   const { data: trailer } = useTrailer(open ? (movie?.id ?? null) : null)
+  const { data: profile } = useProfile()
   const [showVideo, setShowVideo] = useState(false)
   const addMutation = useAddToWatchlist()
 
-  // Auto-play video after a short delay when trailer loads and sheet is open
+  const autoplay = profile?.autoplay_trailer ?? true
+
+  // Auto-play video after a short delay when trailer loads, sheet is open, and autoplay is on
   useEffect(() => {
-    if (open && trailer?.embedUrl) {
+    if (open && trailer?.embedUrl && autoplay) {
       const t = setTimeout(() => setShowVideo(true), 800)
       return () => clearTimeout(t)
     } else {
       setShowVideo(false)
     }
-  }, [open, trailer?.embedUrl])
+  }, [open, trailer?.embedUrl, autoplay])
   const watchedMutation = useMarkWatched()
   const notInterestedMutation = useMarkNotInterested()
   const removeMutation = useRemoveFromWatchlist()

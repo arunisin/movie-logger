@@ -212,6 +212,39 @@ export default function ProfilePage() {
             </div>
           )}
 
+          {/* Autoplay trailer toggle */}
+          <div className="px-4 py-4 flex items-center justify-between gap-3 border-t border-border/50">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="size-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                <span className="text-base leading-none">▶</span>
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground">Autoplay trailer</p>
+                <p className="text-xs text-muted-foreground">
+                  {profile?.autoplay_trailer ?? true
+                    ? "Trailer plays automatically when you open a movie"
+                    : "Tap the play button to watch the trailer"}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={profile?.autoplay_trailer ?? true}
+              onClick={() => updateProfile.mutate({ autoplay_trailer: !(profile?.autoplay_trailer ?? true) })}
+              disabled={updateProfile.isPending || profileLoading}
+              className={cn(
+                "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50",
+                (profile?.autoplay_trailer ?? true) ? "bg-primary" : "bg-secondary border border-border"
+              )}
+            >
+              <span className={cn(
+                "pointer-events-none inline-block size-4 rounded-full bg-white shadow-sm transform transition-transform",
+                (profile?.autoplay_trailer ?? true) ? "translate-x-6" : "translate-x-1"
+              )} />
+            </button>
+          </div>
+
           {/* Notification thresholds */}
           {notifSubscribed && (
             <div className="border-t border-border/50">

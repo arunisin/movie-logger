@@ -25,7 +25,7 @@ export function useProfile() {
 export function useUpdateProfile() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (updates: Partial<Pick<Profile, "username" | "is_public" | "notification_thresholds">>) => {
+    mutationFn: async (updates: Partial<Pick<Profile, "username" | "is_public" | "autoplay_trailer" | "notification_thresholds">>) => {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
