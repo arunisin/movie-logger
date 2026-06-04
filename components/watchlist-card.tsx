@@ -16,6 +16,17 @@ function getDaysUntilRelease(releaseDate: string | null): number | null {
   return diff > 0 ? diff : null
 }
 
+function getHypeBadge(pop: number | null, rating: number | null): string | null {
+  const p = pop ?? 0
+  const r = rating ?? 0
+  if (r >= 8.5) return "👑"
+  if (p > 400) return "🔥🔥"
+  if (p > 200 || r >= 8.0) return "🔥"
+  if (p > 100) return "⚡"
+  if (p > 50 && r >= 7.5) return "💎"
+  return null
+}
+
 interface WatchlistCardProps {
   entry: WatchlistEntry
   onClick?: (entry: WatchlistEntry) => void
@@ -28,6 +39,7 @@ export function WatchlistCard({ entry, onClick }: WatchlistCardProps) {
 
   const isImminent = days !== null && days <= 7
   const isSoon = days !== null && days <= 30
+  const hype = getHypeBadge(entry.movie.popularity, entry.movie.vote_average)
 
   return (
     <div
@@ -84,6 +96,13 @@ export function WatchlistCard({ entry, onClick }: WatchlistCardProps) {
       ) : (
         <div className="absolute top-2 right-2 size-6 rounded-full bg-black/50 flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
           <Bookmark className="size-3.5 text-white/80" />
+        </div>
+      )}
+
+      {/* Top-left: hype badge (only when no countdown) */}
+      {hype && !isSoon && (
+        <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded-full text-sm leading-none bg-black/50 backdrop-blur-sm shadow">
+          {hype}
         </div>
       )}
 

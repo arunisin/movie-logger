@@ -54,7 +54,7 @@ export function WatchlistReleasingSoon({ entries, onCardClick }: WatchlistReleas
       </div>
 
       {/* Horizontal scroll strip — bigger cards */}
-      <div className="flex gap-3 overflow-x-auto no-scrollbar px-4 pb-3">
+      <div className="flex gap-3 overflow-x-auto no-scrollbar px-4 py-3">
         {sorted.map((entry) => {
           const poster = posterUrl(entry.movie.poster_path, "w500")
           const year = releaseYear(entry.movie.release_date)

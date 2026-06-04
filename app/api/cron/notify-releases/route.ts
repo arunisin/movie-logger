@@ -17,6 +17,12 @@ interface PushSubscriptionRow {
   auth: string
 }
 
+function buildReleaseBody(title: string, days: number): string {
+  if (days === 1) return `${title} releases tomorrow!`
+  if (days === 7) return `${title} releases in a week`
+  return `${title} releases in ${days} days`
+}
+
 export async function GET(req: NextRequest) {
   // --- Auth check: only accept Authorization: Bearer <CRON_SECRET> ---
   const authHeader = req.headers.get('authorization')
@@ -43,19 +49,19 @@ export async function GET(req: NextRequest) {
   })
 
   const today = new Date()
-  const sevenDaysLater = new Date(today)
-  sevenDaysLater.setDate(today.getDate() + 7)
+  const in8Days = new Date(today)
+  in8Days.setDate(today.getDate() + 8)
 
   const todayStr = today.toISOString().split('T')[0]
-  const sevenDaysStr = sevenDaysLater.toISOString().split('T')[0]
+  const in8DaysStr = in8Days.toISOString().split('T')[0]
 
-  // --- Query 1: upcoming releases in want_to_watch lists ---
+  // --- Query 1: want_to_watch entries with movies releasing in next 8 days ---
   const { data: upcomingRows, error: upcomingError } = await supabase
     .from('watchlist')
     .select('user_id, movie_id, movies!inner(title, release_date, poster_path)')
     .eq('status', 'want_to_watch')
     .gte('movies.release_date', todayStr)
-    .lte('movies.release_date', sevenDaysStr)
+    .lte('movies.release_date', in8DaysStr)
 
   if (upcomingError) {
     console.error(upcomingError)
@@ -74,6 +80,31 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 
+  // --- Collect unique user IDs from upcoming rows to fetch their thresholds ---
+  const upcomingUserIds = [...new Set((upcomingRows ?? []).map((r) => r.user_id))]
+
+  // Fetch profiles for users with upcoming releases to get their notification_thresholds
+  const profileThresholds = new Map<string, number[]>()
+  if (upcomingUserIds.length > 0) {
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, notification_thresholds')
+      .in('id', upcomingUserIds)
+
+    if (profilesError) {
+      console.error(profilesError)
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    }
+
+    for (const profile of profiles ?? []) {
+      // Default to [1, 7] if column is missing (e.g. pre-migration rows)
+      profileThresholds.set(
+        profile.id,
+        (profile as { id: string; notification_thresholds: number[] | null }).notification_thresholds ?? [1, 7]
+      )
+    }
+  }
+
   // Build notifications list: { user_id, title, body, url }
   interface Notification {
     user_id: string
@@ -84,14 +115,30 @@ export async function GET(req: NextRequest) {
 
   const notifications: Notification[] = []
 
+  const todayMidnight = new Date(todayStr)
+
   for (const row of upcomingRows ?? []) {
-    // Supabase returns joined table as nested object
     const movie = row.movies as unknown as WatchlistMovieRow
     const releaseDate = movie?.release_date
+    if (!releaseDate) continue
+
+    // Compute days_until_release as an integer (date diff)
+    const releaseMidnight = new Date(releaseDate)
+    const msPerDay = 1000 * 60 * 60 * 24
+    const daysUntil = Math.round(
+      (releaseMidnight.getTime() - todayMidnight.getTime()) / msPerDay
+    )
+
+    if (daysUntil < 0) continue
+
+    // Check against this user's thresholds
+    const userThresholds = profileThresholds.get(row.user_id) ?? [1, 7]
+    if (!userThresholds.includes(daysUntil)) continue
+
     notifications.push({
       user_id: row.user_id,
       title: 'Releasing soon',
-      body: `${movie?.title ?? 'A movie'} is releasing${releaseDate ? ` on ${releaseDate}` : ' soon'}!`,
+      body: buildReleaseBody(movie?.title ?? 'A movie', daysUntil),
       url: `/movie/${row.movie_id}`,
     })
   }
@@ -110,7 +157,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ notified: 0, failed: 0 })
   }
 
-  // Collect unique user IDs
+  // Collect unique user IDs across all notifications
   const userIds = [...new Set(notifications.map((n) => n.user_id))]
 
   // Fetch push subscriptions for all relevant users

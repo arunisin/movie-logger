@@ -25,7 +25,7 @@ export function useProfile() {
 export function useUpdateProfile() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (updates: Partial<Pick<Profile, "username" | "is_public">>) => {
+    mutationFn: async (updates: Partial<Pick<Profile, "username" | "is_public" | "notification_thresholds">>) => {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
@@ -42,4 +42,25 @@ export function useUpdateProfile() {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
     },
   });
+}
+
+export function useNotificationThresholds() {
+  const { data: profile, isLoading } = useProfile();
+  const updateProfile = useUpdateProfile();
+
+  const thresholds: number[] = profile?.notification_thresholds ?? [1, 7];
+
+  const toggle = (days: number) => {
+    const current = profile?.notification_thresholds ?? [1, 7];
+    const next = current.includes(days)
+      ? current.filter((d) => d !== days)
+      : [...current, days].sort((a, b) => a - b);
+    updateProfile.mutate({ notification_thresholds: next });
+  };
+
+  return {
+    thresholds,
+    isLoading,
+    toggle,
+  };
 }

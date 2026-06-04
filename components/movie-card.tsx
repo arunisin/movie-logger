@@ -14,9 +14,21 @@ interface MovieCardProps {
   onClick?: () => void
 }
 
+function getHypeBadge(pop: number | null | undefined, rating: number | null | undefined): string | null {
+  const p = pop ?? 0
+  const r = rating ?? 0
+  if (r >= 8.5) return "👑"
+  if (p > 400) return "🔥🔥"
+  if (p > 200 || r >= 8.0) return "🔥"
+  if (p > 100) return "⚡"
+  if (p > 50 && r >= 7.5) return "💎"
+  return null
+}
+
 export function MovieCard({ movie, onClick }: MovieCardProps) {
   const status = useWatchlistStatus(movie.id)
   const poster = posterUrl(movie.poster_path, "w342")
+  const hype = getHypeBadge(movie.popularity, movie.vote_average)
 
   return (
     <button
@@ -42,6 +54,13 @@ export function MovieCard({ movie, onClick }: MovieCardProps) {
             {movie.title}
           </span>
         </div>
+        {/* Hype badge — bottom-left */}
+        {hype && (
+          <div className="absolute bottom-7 left-1.5 px-1.5 py-0.5 rounded-full text-sm leading-none bg-black/55 backdrop-blur-sm shadow">
+            {hype}
+          </div>
+        )}
+
         {status && (
           <div
             className={cn(

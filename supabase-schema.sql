@@ -222,3 +222,15 @@ CREATE POLICY "Authenticated users can insert movies"
 
 CREATE POLICY "Authenticated users can update movies"
   ON movies FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+
+-- ============================================================
+-- Release notification thresholds
+-- Run this ALTER TABLE against existing databases.
+-- New databases created from this schema get the column automatically
+-- via the profiles CREATE TABLE definition above (add the column there too
+-- for clean installs, but this migration handles existing DBs).
+-- ============================================================
+
+-- Release notification thresholds per user (days before release: 1, 2, 3, 7)
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS notification_thresholds INTEGER[] NOT NULL DEFAULT '{1,7}';

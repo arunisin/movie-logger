@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils"
 import { Globe, Lock, LogOut, Copy, Check, Bell, ShieldCheck } from "lucide-react"
 import Link from "next/link"
 import { usePushNotifications } from "@/hooks/use-push-notifications"
+import { NotificationThresholdsPanel } from "@/components/notification-thresholds-panel"
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -208,6 +209,13 @@ export default function ProfilePage() {
                   </>
                 )}
               </Button>
+            </div>
+          )}
+
+          {/* Notification thresholds */}
+          {notifSubscribed && (
+            <div className="border-t border-border/50">
+              <NotificationThresholdsPanel />
             </div>
           )}
 
