@@ -21,18 +21,52 @@ const SORT_OPTIONS = [
   { label: "Popular", value: "popular" },
 ] as const
 
+const LANGUAGES = [
+  { code: null,  label: "Global",     flag: "🌐" },
+  { code: "hi",  label: "Hindi",      flag: "🇮🇳" },
+  { code: "ta",  label: "Tamil",      flag: "🎭" },
+  { code: "ml",  label: "Malayalam",  flag: "🌴" },
+] as const
+
 export type DiscoverSort = "trending" | "rating" | "newest" | "popular"
+export type DiscoverLang = "hi" | "ta" | "ml" | null
 
 interface DiscoverFiltersProps {
   genre: number | null
   sort: DiscoverSort
+  lang: DiscoverLang
   onGenreChange: (genre: number | null) => void
   onSortChange: (sort: DiscoverSort) => void
+  onLangChange: (lang: DiscoverLang) => void
 }
 
-export function DiscoverFilters({ genre, sort, onGenreChange, onSortChange }: DiscoverFiltersProps) {
+export function DiscoverFilters({
+  genre, sort, lang, onGenreChange, onSortChange, onLangChange
+}: DiscoverFiltersProps) {
   return (
     <div className="px-4 pb-3 flex flex-col gap-2">
+      {/* Language chips */}
+      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
+        {LANGUAGES.map((l) => {
+          const isActive = lang === l.code
+          return (
+            <button
+              key={l.code ?? "global"}
+              onClick={() => onLangChange(l.code as DiscoverLang)}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-medium shrink-0 transition-colors flex items-center gap-1",
+                isActive
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <span>{l.flag}</span>
+              {l.label}
+            </button>
+          )
+        })}
+      </div>
+
       {/* Genre chips */}
       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
         {GENRES.map((g) => {
