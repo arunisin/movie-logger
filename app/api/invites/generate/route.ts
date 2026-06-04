@@ -62,9 +62,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+  const origin = new URL(req.url).origin
   return NextResponse.json({
     code,
-    inviteUrl: `${appUrl}/login?invite=${code}`,
+    inviteUrl: `${origin}/login?invite=${code}`,
   })
 }
