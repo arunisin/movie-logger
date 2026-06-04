@@ -10,7 +10,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
-import { Globe, Lock, LogOut, Copy, Check, Bell } from "lucide-react"
+import { Globe, Lock, LogOut, Copy, Check, Bell, ShieldCheck } from "lucide-react"
+import Link from "next/link"
 import { usePushNotifications } from "@/hooks/use-push-notifications"
 
 export default function ProfilePage() {
@@ -63,6 +64,9 @@ export default function ProfilePage() {
   }
 
   const isLoading = profileLoading || !user
+  const isAdmin =
+    Boolean(process.env.NEXT_PUBLIC_ADMIN_EMAIL) &&
+    user?.email?.toLowerCase() === process.env.NEXT_PUBLIC_ADMIN_EMAIL?.toLowerCase()
 
   return (
     <div className="flex flex-col">
@@ -239,6 +243,19 @@ export default function ProfilePage() {
             </button>
           </div>
         </div>
+
+        {/* Admin panel link — only for admin */}
+        {isAdmin && (
+          <Link href="/admin" className="block">
+            <Button
+              variant="outline"
+              className="w-full rounded-xl h-10 gap-2"
+            >
+              <ShieldCheck className="size-4 text-primary" />
+              Admin — Invite Manager
+            </Button>
+          </Link>
+        )}
 
         {/* Sign out */}
         <Button

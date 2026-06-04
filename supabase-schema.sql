@@ -182,3 +182,31 @@ CREATE POLICY "Users manage own push subscriptions"
   WITH CHECK (auth.uid() = user_id);
 
 CREATE INDEX idx_push_subscriptions_user_id ON push_subscriptions(user_id);
+
+-- ============================================================
+-- Invite codes
+-- ============================================================
+CREATE TABLE invites (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  code TEXT NOT NULL UNIQUE,
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  used_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  used_at TIMESTAMPTZ,
+  expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE invites ENABLE ROW LEVEL SECURITY;
+
+-- Anyone authenticated can read an invite to validate it
+CREATE POLICY "Read invites for validation"
+  ON invites FOR SELECT
+  USING (auth.role() = 'authenticated' OR used_by IS NULL);
+
+-- Only service role can insert/update invites
+CREATE POLICY "Service role manages invites"
+  ON invites FOR ALL
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
+
+CREATE INDEX idx_invites_code ON invites(code);

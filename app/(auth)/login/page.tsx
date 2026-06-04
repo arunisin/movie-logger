@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,17 +10,32 @@ import { cn } from "@/lib/utils"
 
 type Tab = "signin" | "signup"
 
-export default function LoginPage() {
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL
+
+function LoginPageContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [tab, setTab] = useState<Tab>("signin")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [inviteCode, setInviteCode] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   const supabase = createClient()
+
+  // Pre-fill invite code from ?invite= query param and switch to sign-up tab
+  useEffect(() => {
+    const invite = searchParams.get("invite")
+    if (invite) {
+      setInviteCode(invite.toUpperCase())
+      setTab("signup")
+    }
+  }, [searchParams])
+
+  const isAdmin = ADMIN_EMAIL && email.toLowerCase() === ADMIN_EMAIL.toLowerCase()
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -56,15 +71,50 @@ export default function LoginPage() {
       return
     }
 
+    // Non-admin users must provide a valid invite code
+    if (!isAdmin) {
+      if (!inviteCode.trim()) {
+        setError("An invite code is required to sign up.")
+        return
+      }
+
+      setLoading(true)
+      try {
+        const res = await fetch(`/api/invites/validate?code=${encodeURIComponent(inviteCode.trim())}`)
+        const data = await res.json()
+        if (!data.valid) {
+          setError(data.reason ?? "Invalid or expired invite code.")
+          setLoading(false)
+          return
+        }
+      } catch {
+        setError("Could not validate invite code. Please try again.")
+        setLoading(false)
+        return
+      }
+    }
+
     setLoading(true)
 
     try {
       const { error } = await supabase.auth.signUp({ email, password })
       if (error) {
         setError(error.message)
-      } else {
-        setSuccessMessage("Account created! Check your email to confirm your account.")
+        return
       }
+
+      // Consume the invite code (fire-and-forget — user is now created)
+      if (!isAdmin && inviteCode.trim()) {
+        fetch("/api/invites/consume", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: inviteCode.trim() }),
+        }).catch(() => {
+          // Non-critical — don't block the success message
+        })
+      }
+
+      setSuccessMessage("Account created! Check your email to confirm your account.")
     } catch {
       setError("Something went wrong. Please try again.")
     } finally {
@@ -79,7 +129,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="w-full max-w-sm">
+    <div className="w-full max-w-sm" suppressHydrationWarning>
       <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-2xl">
         {/* Tab switcher */}
         <div className="flex border-b border-border">
@@ -176,6 +226,27 @@ export default function LoginPage() {
                 />
               </div>
 
+              {/* Invite code — hidden for admin email */}
+              {!isAdmin && (
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="signup-invite" className="text-sm font-medium text-foreground/80">
+                    Invite Code
+                  </Label>
+                  <Input
+                    id="signup-invite"
+                    type="text"
+                    autoComplete="off"
+                    placeholder="XXXXXXXX"
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                    required
+                    className="h-10 font-mono tracking-widest"
+                    maxLength={8}
+                    spellCheck={false}
+                  />
+                </div>
+              )}
+
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="signup-password" className="text-sm font-medium text-foreground/80">
                   Password
@@ -236,5 +307,13 @@ export default function LoginPage() {
         Track the films you&apos;ve watched. Save the ones you want to see.
       </p>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageContent />
+    </Suspense>
   )
 }
