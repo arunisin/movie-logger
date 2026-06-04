@@ -148,4 +148,21 @@
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.8s ease;
+    pointer-events: none;
+  }
+  .shimmer:hover::after {
+    transform: translateX(100%);
+  }
 }
