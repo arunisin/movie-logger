@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
-import { Copy, Check, RefreshCw } from "lucide-react"
+import { Copy, Check, RefreshCw, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface Invite {
@@ -31,6 +31,7 @@ export default function AdminPage() {
   const [result, setResult] = useState<GenerateResult | null>(null)
   const [copied, setCopied] = useState(false)
   const [generateError, setGenerateError] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const supabase = createClient()
 
@@ -85,6 +86,19 @@ export default function AdminPage() {
       setGenerateError("Network error. Please try again.")
     } finally {
       setGenerating(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id)
+    try {
+      const res = await fetch(`/api/invites/${id}`, { method: "DELETE" })
+      if (res.ok) {
+        setInvites((prev) => prev.filter((inv) => inv.id !== id))
+        if (result?.code === invites.find((i) => i.id === id)?.code) setResult(null)
+      }
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -235,27 +249,31 @@ export default function AdminPage() {
                         ) : expired ? (
                           <Badge variant="destructive" className="text-xs">Expired</Badge>
                         ) : (
-                          <Badge
-                            variant="outline"
-                            className={cn("text-xs border-primary/40 text-primary")}
-                          >
+                          <Badge variant="outline" className="text-xs border-primary/40 text-primary">
                             Active
                           </Badge>
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Created {formatDate(invite.created_at)}
-                      </p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-xs text-muted-foreground">
                         {used
                           ? `Used ${formatDate(invite.used_at)}`
                           : invite.expires_at
                           ? `Expires ${formatDate(invite.expires_at)}`
-                          : "No expiry"}
+                          : `Created ${formatDate(invite.created_at)}`}
                       </p>
                     </div>
+                    <button
+                      onClick={() => handleDelete(invite.id)}
+                      disabled={deletingId === invite.id}
+                      className="shrink-0 size-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40"
+                      aria-label="Delete invite"
+                    >
+                      {deletingId === invite.id ? (
+                        <RefreshCw className="size-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="size-3.5" />
+                      )}
+                    </button>
                   </div>
                 )
               })}
