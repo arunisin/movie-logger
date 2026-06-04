@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
-import type { WatchlistEntry, WatchlistStatus, TMDBMovie } from "@/lib/types";
+import type { WatchlistEntry, WatchlistStatus, MovieLike } from "@/lib/types";
 
 export function useWatchlist() {
   return useQuery({
@@ -31,7 +31,7 @@ export function useWatchlistStatus(movieId: number): WatchlistStatus {
 export function useAddToWatchlist() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (movie: TMDBMovie) => {
+    mutationFn: async (movie: MovieLike) => {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
@@ -61,7 +61,7 @@ export function useAddToWatchlist() {
       if (error) throw error;
       return data as WatchlistEntry;
     },
-    onMutate: async (movie: TMDBMovie) => {
+    onMutate: async (movie: MovieLike) => {
       await queryClient.cancelQueries({ queryKey: ["watchlist"] });
       const previous = queryClient.getQueryData<WatchlistEntry[]>(["watchlist"]);
       const optimistic: WatchlistEntry = {
@@ -93,10 +93,10 @@ export function useAddToWatchlist() {
   });
 }
 
-export function useMarkWatched(movieId: number) {
+export function useMarkWatched() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (movieId: number) => {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
@@ -110,7 +110,7 @@ export function useMarkWatched(movieId: number) {
       if (error) throw error;
       return data as WatchlistEntry;
     },
-    onMutate: async () => {
+    onMutate: async (movieId: number) => {
       await queryClient.cancelQueries({ queryKey: ["watchlist"] });
       const previous = queryClient.getQueryData<WatchlistEntry[]>(["watchlist"]);
       queryClient.setQueryData<WatchlistEntry[]>(["watchlist"], (old) =>
@@ -133,10 +133,10 @@ export function useMarkWatched(movieId: number) {
   });
 }
 
-export function useRemoveFromWatchlist(movieId: number) {
+export function useRemoveFromWatchlist() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (movieId: number) => {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
@@ -147,7 +147,7 @@ export function useRemoveFromWatchlist(movieId: number) {
         .eq("movie_id", movieId);
       if (error) throw error;
     },
-    onMutate: async () => {
+    onMutate: async (movieId: number) => {
       await queryClient.cancelQueries({ queryKey: ["watchlist"] });
       const previous = queryClient.getQueryData<WatchlistEntry[]>(["watchlist"]);
       queryClient.setQueryData<WatchlistEntry[]>(["watchlist"], (old) =>

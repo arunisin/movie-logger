@@ -46,3 +46,4 @@ export interface WatchlistEntry {
 
 export type WatchlistStatus = "want_to_watch" | "watched" | null
 export type WatchlistFilter = "all" | "want_to_watch" | "watched"
+export type MovieLike = TMDBMovie | Movie
