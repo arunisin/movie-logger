@@ -3,6 +3,7 @@
 import type { ReactNode } from "react"
 import { BottomNav } from "@/components/bottom-nav"
 import { MovieDetailSheet } from "@/components/movie-detail-sheet"
+import { InstallPrompt } from "@/components/install-prompt"
 import { useUIStore } from "@/store/ui-store"
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -12,6 +13,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <>
       <main className="min-h-dvh pb-20">{children}</main>
       <BottomNav />
+      <InstallPrompt />
       <MovieDetailSheet
         movie={selectedMovie}
         open={sheetOpen}

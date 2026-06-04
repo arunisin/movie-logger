@@ -30,6 +30,7 @@ export interface Profile {
   id: string
   username: string | null
   is_public: boolean
+  is_admin: boolean
   autoplay_trailer: boolean
   notification_thresholds: number[]
   created_at: string

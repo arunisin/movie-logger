@@ -136,9 +136,18 @@ export function WatchlistReleasingSoon({ entries, onCardClick }: WatchlistReleas
                   <p className="text-white text-sm font-semibold leading-tight line-clamp-2">
                     {entry.movie.title}
                   </p>
-                  {year && (
-                    <p className="text-white/50 text-xs mt-0.5">{year}</p>
-                  )}
+                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                    {entry.movie.release_date && (
+                      <p className="text-amber-300/90 text-xs font-medium">
+                        {new Date(entry.movie.release_date).toLocaleDateString("en-US", {
+                          month: "short", day: "numeric", year: "numeric"
+                        })}
+                      </p>
+                    )}
+                    {year && !entry.movie.release_date && (
+                      <p className="text-white/50 text-xs">{year}</p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Inset glow ring */}

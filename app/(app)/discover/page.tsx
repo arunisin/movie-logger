@@ -6,8 +6,8 @@ import { MovieCard } from "@/components/movie-card"
 import { SearchBar } from "@/components/search-bar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DiscoverFilters } from "@/components/discover-filters"
-import type { DiscoverSort } from "@/components/discover-filters"
-import { useTrendingMovies, useSearchMovies } from "@/hooks/use-movies"
+import type { DiscoverSort, DiscoverLang } from "@/components/discover-filters"
+import { useTrendingMovies, useSearchMovies, useDiscoverMovies } from "@/hooks/use-movies"
 import { useWatchlist } from "@/hooks/use-watchlist"
 import { useUIStore } from "@/store/ui-store"
 import { useDebounce } from "@/hooks/use-debounce"
@@ -25,17 +25,19 @@ function MovieGridSkeletons() {
   )
 }
 
+const LANG_LABELS: Record<string, string> = { hi: "Hindi", ta: "Tamil", ml: "Malayalam" }
+
 function DiscoverContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const { openMovieSheet } = useUIStore()
 
-  // Local input state — instant feedback, no navigation on every keystroke
   const [searchInput, setSearchInput] = useState(searchParams.get("q") ?? "")
   const debouncedSearch = useDebounce(searchInput, 400)
 
   const discoverGenre = searchParams.get("genre") ? Number(searchParams.get("genre")) : null
   const discoverSort = (searchParams.get("sort") as DiscoverSort) ?? "trending"
+  const discoverLang = (searchParams.get("lang") as DiscoverLang) ?? null
 
   const updateParams = useCallback(
     (updates: Record<string, string | null>) => {
@@ -49,7 +51,6 @@ function DiscoverContent() {
     [searchParams, router]
   )
 
-  // Sync debounced search to URL — one replace per settled value, not per keystroke
   useEffect(() => {
     updateParams({ q: debouncedSearch || null })
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -57,11 +58,23 @@ function DiscoverContent() {
 
   const isSearching = debouncedSearch.length >= 2
 
+  // When a language is selected, use discover API (server-side genre+sort+lang)
+  // Otherwise use trending (cached Supabase data) with client-side filter/sort
   const trending = useTrendingMovies()
-  const searchResults = useSearchMovies(debouncedSearch) // API only fires on debounced value
+  const searchResults = useSearchMovies(debouncedSearch)
+  const langResults = useDiscoverMovies(discoverLang, discoverSort, discoverGenre)
 
-  const movies = isSearching ? searchResults.data : trending.data
-  const isLoading = isSearching ? searchResults.isLoading : trending.isLoading
+  const rawMovies = isSearching
+    ? searchResults.data
+    : discoverLang
+    ? langResults.data
+    : trending.data
+
+  const isLoading = isSearching
+    ? searchResults.isLoading
+    : discoverLang
+    ? langResults.isLoading
+    : trending.isLoading
 
   const { data: watchlistEntries } = useWatchlist()
   const getStatus = useCallback(
@@ -70,18 +83,17 @@ function DiscoverContent() {
   )
 
   const filteredMovies = useMemo(() => {
-    let list = movies ?? []
+    let list = rawMovies ?? []
 
-    // Filter out "not interested" movies
+    // Filter out "not interested"
     list = list.filter((m) => getStatus(m.id) !== "not_interested")
 
-    // Genre filter (only when not searching)
-    if (!isSearching && discoverGenre !== null) {
-      list = list.filter((m) => m.genre_ids?.includes(discoverGenre))
-    }
-
-    // Sort (only when not searching)
-    if (!isSearching) {
+    // When using the discover API, genre+sort are applied server-side
+    // Only apply client-side for trending (no lang selected)
+    if (!isSearching && !discoverLang) {
+      if (discoverGenre !== null) {
+        list = list.filter((m) => m.genre_ids?.includes(discoverGenre))
+      }
       switch (discoverSort) {
         case "rating":
           list = [...list].sort((a, b) => (b.vote_average ?? 0) - (a.vote_average ?? 0))
@@ -94,18 +106,22 @@ function DiscoverContent() {
         case "popular":
           list = [...list].sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0))
           break
-        // 'trending' = default API order
       }
     }
 
     return list
-  }, [movies, discoverGenre, discoverSort, getStatus, isSearching])
+  }, [rawMovies, discoverGenre, discoverSort, discoverLang, getStatus, isSearching])
 
-  const isFilterActive = !isSearching && discoverGenre !== null
+  const sectionLabel = isSearching
+    ? `Results for "${debouncedSearch}"`
+    : discoverLang
+    ? `${LANG_LABELS[discoverLang] ?? discoverLang} Films`
+    : "Trending"
+
+  const isFilterActive = !isSearching && (discoverGenre !== null || discoverLang !== null)
 
   return (
     <div className="flex flex-col">
-      {/* Sticky header */}
       <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border/50">
         <div className="flex items-center px-4 pt-4 pb-2">
           <span className="text-xl font-bold text-primary tracking-tight">Filmlog</span>
@@ -121,16 +137,17 @@ function DiscoverContent() {
           <DiscoverFilters
             genre={discoverGenre}
             sort={discoverSort}
+            lang={discoverLang}
             onGenreChange={(g) => updateParams({ genre: g ? String(g) : null })}
-            onSortChange={(s) => updateParams({ sort: s === 'trending' ? null : s })}
+            onSortChange={(s) => updateParams({ sort: s === "trending" ? null : s })}
+            onLangChange={(l) => updateParams({ lang: l ?? null })}
           />
         )}
       </header>
 
-      {/* Section label */}
       <div className="px-4 pt-4 pb-1 flex items-center gap-2">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          {isSearching ? `Results for "${debouncedSearch}"` : "Trending"}
+          {sectionLabel}
         </h2>
         {isFilterActive && (
           <span className="text-xs bg-primary/20 text-primary px-1.5 rounded-full">
@@ -139,7 +156,6 @@ function DiscoverContent() {
         )}
       </div>
 
-      {/* Movie grid */}
       <div className="grid grid-cols-2 gap-3 p-4 pt-2">
         {isLoading ? (
           <MovieGridSkeletons />
@@ -156,13 +172,13 @@ function DiscoverContent() {
             <span className="text-4xl" aria-hidden="true">🎬</span>
             {isSearching ? (
               <p className="text-muted-foreground text-sm text-center">No movies found.</p>
-            ) : (movies ?? []).length > 0 ? (
+            ) : (rawMovies ?? []).length > 0 ? (
               <>
                 <p className="text-muted-foreground text-sm text-center">
                   No movies match your filters.
                 </p>
                 <button
-                  onClick={() => updateParams({ genre: null, sort: null })}
+                  onClick={() => updateParams({ genre: null, sort: null, lang: null })}
                   className="text-xs text-primary hover:underline"
                 >
                   Clear filters
@@ -170,7 +186,7 @@ function DiscoverContent() {
               </>
             ) : (
               <p className="text-muted-foreground text-sm text-center">
-                Nothing trending right now.
+                Nothing here right now.
               </p>
             )}
           </div>

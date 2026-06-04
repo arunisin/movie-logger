@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
-import { Copy, Check, RefreshCw, Trash2 } from "lucide-react"
+import { Copy, Check, RefreshCw, Trash2, ShieldCheck, ShieldOff } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface Invite {
@@ -22,9 +22,18 @@ interface GenerateResult {
   inviteUrl: string
 }
 
+interface UserRow {
+  id: string
+  email: string | undefined
+  username: string | null
+  is_admin: boolean
+  created_at: string
+}
+
 export default function AdminPage() {
   const router = useRouter()
   const [authChecked, setAuthChecked] = useState(false)
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const [invites, setInvites] = useState<Invite[]>([])
   const [invitesLoading, setInvitesLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
@@ -32,6 +41,9 @@ export default function AdminPage() {
   const [copied, setCopied] = useState(false)
   const [generateError, setGenerateError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [users, setUsers] = useState<UserRow[]>([])
+  const [usersLoading, setUsersLoading] = useState(false)
+  const [togglingUserId, setTogglingUserId] = useState<string | null>(null)
 
   const supabase = createClient()
 
@@ -45,11 +57,42 @@ export default function AdminPage() {
           return
         }
         setAuthChecked(true)
+        setIsSuperAdmin(data.isSuperAdmin === true)
       })
       .catch(() => {
         router.replace("/discover")
       })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadUsers = async () => {
+    setUsersLoading(true)
+    try {
+      const res = await fetch("/api/admin/users")
+      if (res.ok) {
+        const data = await res.json()
+        setUsers(data.users ?? [])
+      }
+    } finally {
+      setUsersLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (authChecked && isSuperAdmin) loadUsers()
+  }, [authChecked, isSuperAdmin]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleToggleAdmin = async (userId: string) => {
+    setTogglingUserId(userId)
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/toggle-admin`, { method: "POST" })
+      if (res.ok) {
+        const { is_admin } = await res.json()
+        setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, is_admin } : u))
+      }
+    } finally {
+      setTogglingUserId(null)
+    }
+  }
 
   const loadInvites = async () => {
     setInvitesLoading(true)
@@ -280,6 +323,83 @@ export default function AdminPage() {
             </div>
           )}
         </div>
+
+        {/* Manage Admins — super-admin only */}
+        {isSuperAdmin && (
+          <div className="bg-card rounded-2xl border border-border overflow-hidden">
+            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Manage Admins
+              </h2>
+              <button
+                type="button"
+                onClick={loadUsers}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Refresh users"
+              >
+                <RefreshCw className="size-3.5" />
+              </button>
+            </div>
+
+            {usersLoading ? (
+              <div className="p-4 flex flex-col gap-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-14 rounded-xl" />
+                ))}
+              </div>
+            ) : users.length === 0 ? (
+              <p className="px-4 py-8 text-sm text-muted-foreground text-center">No users found.</p>
+            ) : (
+              <div className="divide-y divide-border">
+                {users.map((u) => {
+                  const isYou = u.email?.toLowerCase() === process.env.NEXT_PUBLIC_ADMIN_EMAIL?.toLowerCase()
+                  return (
+                    <div key={u.id} className="px-4 py-3 flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {u.email}
+                          </p>
+                          {isYou && (
+                            <Badge variant="outline" className="text-xs border-primary/40 text-primary shrink-0">
+                              You
+                            </Badge>
+                          )}
+                          {u.is_admin && !isYou && (
+                            <Badge variant="secondary" className="text-xs shrink-0">Admin</Badge>
+                          )}
+                        </div>
+                        {u.username && (
+                          <p className="text-xs text-muted-foreground">@{u.username}</p>
+                        )}
+                      </div>
+                      {!isYou && (
+                        <button
+                          onClick={() => handleToggleAdmin(u.id)}
+                          disabled={togglingUserId === u.id}
+                          className={cn(
+                            "shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
+                            u.is_admin
+                              ? "bg-destructive/10 text-destructive hover:bg-destructive/20"
+                              : "bg-primary/10 text-primary hover:bg-primary/20"
+                          )}
+                        >
+                          {togglingUserId === u.id ? (
+                            <RefreshCw className="size-3 animate-spin" />
+                          ) : u.is_admin ? (
+                            <><ShieldOff className="size-3" /> Revoke</>
+                          ) : (
+                            <><ShieldCheck className="size-3" /> Make Admin</>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
