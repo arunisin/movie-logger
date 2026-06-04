@@ -22,9 +22,12 @@ interface TMDBResponse {
   results: TMDBMovie[];
 }
 
-async function fetchTMDB(endpoint: string, apiKey: string): Promise<TMDBMovie[]> {
-  const url = `${TMDB_BASE}${endpoint}?api_key=${apiKey}&language=en-US&page=1`;
-  const res = await fetch(url, { next: { revalidate: 0 } });
+async function fetchTMDB(endpoint: string, token: string): Promise<TMDBMovie[]> {
+  const url = `${TMDB_BASE}${endpoint}?language=en-US&page=1`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+    next: { revalidate: 0 },
+  });
   if (!res.ok) {
     throw new Error(`TMDB fetch failed for ${endpoint}: ${res.status} ${res.statusText}`);
   }
@@ -52,7 +55,7 @@ export async function GET(req: NextRequest) {
   // --- Env vars ---
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const tmdbApiKey = process.env.TMDB_API_KEY;
+  const tmdbToken = process.env.TMDB_READ_ACCESS_TOKEN;
 
   if (!supabaseUrl || !serviceRoleKey) {
     return NextResponse.json(
@@ -60,9 +63,9 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-  if (!tmdbApiKey) {
+  if (!tmdbToken) {
     return NextResponse.json(
-      { error: "Missing TMDB_API_KEY environment variable" },
+      { error: "Missing TMDB_READ_ACCESS_TOKEN environment variable" },
       { status: 500 }
     );
   }
@@ -74,8 +77,8 @@ export async function GET(req: NextRequest) {
 
   // --- Fetch from TMDB ---
   const [trending, nowPlaying] = await Promise.all([
-    fetchTMDB("/trending/movie/week", tmdbApiKey),
-    fetchTMDB("/movie/now_playing", tmdbApiKey),
+    fetchTMDB("/trending/movie/week", tmdbToken),
+    fetchTMDB("/movie/now_playing", tmdbToken),
   ]);
 
   // Deduplicate by movie id

@@ -6,14 +6,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ results: [] })
   }
 
-  const apiKey = process.env.TMDB_API_KEY
-  if (!apiKey) {
-    return NextResponse.json({ error: "TMDB_API_KEY not configured" }, { status: 500 })
+  const tmdbToken = process.env.TMDB_READ_ACCESS_TOKEN
+  if (!tmdbToken) {
+    return NextResponse.json({ error: "TMDB_READ_ACCESS_TOKEN not configured" }, { status: 500 })
   }
 
   const res = await fetch(
-    `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=en-US&page=1`,
-    { next: { revalidate: 300 } }
+    `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(query)}&language=en-US&page=1`,
+    { headers: { Authorization: `Bearer ${tmdbToken}` }, next: { revalidate: 300 } }
   )
 
   if (!res.ok) {

@@ -9,13 +9,13 @@ export async function GET() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  const tmdbApiKey = process.env.TMDB_API_KEY
+  const tmdbToken = process.env.TMDB_READ_ACCESS_TOKEN
 
   if (!supabaseUrl || !anonKey) {
     return NextResponse.json({ error: "Missing Supabase environment variables" }, { status: 500 })
   }
-  if (!tmdbApiKey) {
-    return NextResponse.json({ error: "TMDB_API_KEY not configured" }, { status: 500 })
+  if (!tmdbToken) {
+    return NextResponse.json({ error: "TMDB_READ_ACCESS_TOKEN not configured" }, { status: 500 })
   }
 
   // --- Read from cache (public anon client) ---
@@ -42,8 +42,8 @@ export async function GET() {
 
   // --- Cache is stale or empty — fetch from TMDB ---
   const res = await fetch(
-    `https://api.themoviedb.org/3/trending/movie/week?api_key=${tmdbApiKey}&language=en-US`,
-    { next: { revalidate: 0 } }
+    "https://api.themoviedb.org/3/trending/movie/week?language=en-US",
+    { headers: { Authorization: `Bearer ${tmdbToken}` }, next: { revalidate: 0 } }
   )
 
   if (!res.ok) {
