@@ -9,7 +9,8 @@ export function useTrendingMovies() {
     queryFn: async (): Promise<TMDBMovie[]> => {
       const res = await fetch("/api/tmdb/trending");
       if (!res.ok) throw new Error("Failed to fetch trending movies");
-      return res.json();
+      const data = await res.json();
+      return data.results ?? [];
     },
     staleTime: 1000 * 60 * 30,
     gcTime: 1000 * 60 * 60,
@@ -22,7 +23,8 @@ export function useSearchMovies(query: string) {
     queryFn: async (): Promise<TMDBMovie[]> => {
       const res = await fetch(`/api/tmdb/search?q=${encodeURIComponent(query)}`);
       if (!res.ok) throw new Error("Failed to search movies");
-      return res.json();
+      const data = await res.json();
+      return data.results ?? [];
     },
     enabled: query.length >= 2,
     staleTime: 1000 * 60 * 5,

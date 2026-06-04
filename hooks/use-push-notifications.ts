@@ -75,8 +75,8 @@ export function usePushNotifications(): UsePushNotificationsReturn {
         registrationRef.current = registration
       }
 
-      const res = await fetch('/api/push/vapid-public-key')
-      const { publicKey } = await res.json()
+      const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+      if (!publicKey) throw new Error('VAPID public key not configured')
 
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, useRef, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Input } from "@/components/ui/input"
@@ -9,8 +9,6 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 type Tab = "signin" | "signup"
-
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL
 
 function LoginPageContent() {
   const router = useRouter()
@@ -23,6 +21,8 @@ function LoginPageContent() {
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const supabase = createClient()
 
@@ -35,7 +35,26 @@ function LoginPageContent() {
     }
   }, [searchParams])
 
-  const isAdmin = ADMIN_EMAIL && email.toLowerCase() === ADMIN_EMAIL.toLowerCase()
+  // Debounced admin check on email change (server-side, no NEXT_PUBLIC leak)
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (!email) {
+      setIsAdmin(false)
+      return
+    }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/auth/is-admin")
+        const data = await res.json()
+        setIsAdmin(Boolean(data.isAdmin))
+      } catch {
+        setIsAdmin(false)
+      }
+    }, 400)
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [email])
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()

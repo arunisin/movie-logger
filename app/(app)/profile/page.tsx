@@ -19,6 +19,7 @@ export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null)
   const [copied, setCopied] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   const { data: profile, isLoading: profileLoading } = useProfile()
   const { data: entries, isLoading: watchlistLoading } = useWatchlist()
@@ -36,6 +37,13 @@ export default function ProfilePage() {
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user)
     })
+  }, [])
+
+  useEffect(() => {
+    fetch("/api/auth/is-admin")
+      .then((res) => res.json())
+      .then((data) => setIsAdmin(Boolean(data.isAdmin)))
+      .catch(() => setIsAdmin(false))
   }, [])
 
   const watchedCount = entries?.filter((e) => e.status === "watched").length ?? 0
@@ -64,9 +72,6 @@ export default function ProfilePage() {
   }
 
   const isLoading = profileLoading || !user
-  const isAdmin =
-    Boolean(process.env.NEXT_PUBLIC_ADMIN_EMAIL) &&
-    user?.email?.toLowerCase() === process.env.NEXT_PUBLIC_ADMIN_EMAIL?.toLowerCase()
 
   return (
     <div className="flex flex-col">

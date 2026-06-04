@@ -2,10 +2,11 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Compass, BookMarked, User } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Compass, BookMarked, User, ShieldCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const NAV_ITEMS = [
+const BASE_NAV_ITEMS = [
   { href: "/discover", label: "Discover", icon: Compass },
   { href: "/watchlist", label: "Watchlist", icon: BookMarked },
   { href: "/profile", label: "Profile", icon: User },
@@ -13,10 +14,22 @@ const NAV_ITEMS = [
 
 export function BottomNav() {
   const pathname = usePathname()
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    fetch("/api/auth/is-admin")
+      .then((res) => res.json())
+      .then((data) => setIsAdmin(Boolean(data.isAdmin)))
+      .catch(() => setIsAdmin(false))
+  }, [])
+
+  const navItems = isAdmin
+    ? [...BASE_NAV_ITEMS, { href: "/admin", label: "Admin", icon: ShieldCheck }]
+    : BASE_NAV_ITEMS
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-around border-t border-border bg-card/95 backdrop-blur-sm pb-safe">
-      {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+      {navItems.map(({ href, label, icon: Icon }) => {
         const active = pathname.startsWith(href)
         return (
           <Link

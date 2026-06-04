@@ -18,14 +18,13 @@ interface PushSubscriptionRow {
 }
 
 export async function GET(req: NextRequest) {
-  // --- Auth check ---
+  // --- Auth check: only accept Authorization: Bearer <CRON_SECRET> ---
   const authHeader = req.headers.get('authorization')
-  const cronSecretHeader = req.headers.get('x-cron-secret')
   const cronSecret = process.env.CRON_SECRET
 
   const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
 
-  if (!cronSecret || (bearerToken !== cronSecret && cronSecretHeader !== cronSecret)) {
+  if (!cronSecret || bearerToken !== cronSecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -34,7 +33,8 @@ export async function GET(req: NextRequest) {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !serviceRoleKey) {
-    return NextResponse.json({ error: 'Missing Supabase environment variables' }, { status: 500 })
+    console.error('Missing Supabase environment variables')
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   // --- Service role client (bypasses RLS) ---
@@ -58,7 +58,8 @@ export async function GET(req: NextRequest) {
     .lte('movies.release_date', sevenDaysStr)
 
   if (upcomingError) {
-    return NextResponse.json({ error: `Upcoming query failed: ${upcomingError.message}` }, { status: 500 })
+    console.error(upcomingError)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 
   // --- Query 2: trending movies in want_to_watch lists ---
@@ -69,7 +70,8 @@ export async function GET(req: NextRequest) {
     .eq('movies.is_trending', true)
 
   if (trendingError) {
-    return NextResponse.json({ error: `Trending query failed: ${trendingError.message}` }, { status: 500 })
+    console.error(trendingError)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 
   // Build notifications list: { user_id, title, body, url }
@@ -118,7 +120,8 @@ export async function GET(req: NextRequest) {
     .in('user_id', userIds)
 
   if (subsError) {
-    return NextResponse.json({ error: `Subscriptions query failed: ${subsError.message}` }, { status: 500 })
+    console.error(subsError)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 
   // Group subscriptions by user_id

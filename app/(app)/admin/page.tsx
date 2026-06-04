@@ -9,8 +9,6 @@ import { Badge } from "@/components/ui/badge"
 import { Copy, Check, RefreshCw } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL
-
 interface Invite {
   id: string
   code: string
@@ -36,16 +34,20 @@ export default function AdminPage() {
 
   const supabase = createClient()
 
-  // Auth guard
+  // Auth guard — verify admin status server-side
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      const user = data.user
-      if (!user || user.email?.toLowerCase() !== ADMIN_EMAIL?.toLowerCase()) {
+    fetch("/api/auth/is-admin")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.isAdmin) {
+          router.replace("/discover")
+          return
+        }
+        setAuthChecked(true)
+      })
+      .catch(() => {
         router.replace("/discover")
-        return
-      }
-      setAuthChecked(true)
-    })
+      })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadInvites = async () => {

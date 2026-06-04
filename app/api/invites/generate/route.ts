@@ -15,8 +15,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  // Admin-only guard
-  if (user.email !== process.env.ADMIN_EMAIL) {
+  // Admin-only guard (case-insensitive)
+  if (user.email?.toLowerCase() !== process.env.ADMIN_EMAIL?.toLowerCase()) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
@@ -24,7 +24,13 @@ export async function POST(req: NextRequest) {
   let expiresInDays: number | undefined
   try {
     const body = await req.json()
-    if (typeof body?.expiresInDays === "number" && body.expiresInDays > 0) {
+    if (typeof body?.expiresInDays === "number") {
+      if (body.expiresInDays <= 0 || body.expiresInDays > 365) {
+        return NextResponse.json(
+          { error: "expiresInDays must be between 1 and 365" },
+          { status: 400 }
+        )
+      }
       expiresInDays = body.expiresInDays
     }
   } catch {
@@ -52,7 +58,8 @@ export async function POST(req: NextRequest) {
   })
 
   if (insertError) {
-    return NextResponse.json({ error: insertError.message }, { status: 500 })
+    console.error(insertError)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"

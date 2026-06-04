@@ -24,6 +24,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
+  // Per-user subscription cap
+  const { count } = await supabase
+    .from('push_subscriptions')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+
+  if ((count ?? 0) >= 10) {
+    return NextResponse.json({ error: 'Subscription limit reached' }, { status: 429 })
+  }
+
   const { error } = await supabase.from('push_subscriptions').upsert(
     {
       user_id: user.id,
@@ -35,7 +45,8 @@ export async function POST(req: NextRequest) {
   )
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error(error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true })

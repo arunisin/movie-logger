@@ -1,21 +1,22 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
 export const revalidate = 21600
 
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   const tmdbToken = process.env.TMDB_READ_ACCESS_TOKEN
 
   if (!supabaseUrl || !anonKey) {
-    return NextResponse.json({ error: "Missing Supabase environment variables" }, { status: 500 })
+    console.error("Missing Supabase environment variables")
+    return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
   }
   if (!tmdbToken) {
-    return NextResponse.json({ error: "TMDB_READ_ACCESS_TOKEN not configured" }, { status: 500 })
+    console.error("TMDB_READ_ACCESS_TOKEN not configured")
+    return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
   }
 
   // --- Read from cache (public anon client) ---
@@ -40,62 +41,17 @@ export async function GET() {
     }
   }
 
-  // --- Cache is stale or empty — fetch from TMDB ---
+  // --- Cache is stale or empty — proxy TMDB (read-only, no DB writes) ---
   const res = await fetch(
     "https://api.themoviedb.org/3/trending/movie/week?language=en-US",
     { headers: { Authorization: `Bearer ${tmdbToken}` }, next: { revalidate: 0 } }
   )
 
   if (!res.ok) {
-    return NextResponse.json({ error: "Failed to fetch trending movies" }, { status: res.status })
+    console.error(`TMDB trending fetch failed: ${res.status} ${res.statusText}`)
+    return NextResponse.json({ error: "Internal server error" }, { status: res.status })
   }
 
   const data = await res.json()
-
-  // --- Update Supabase in the background (await inline — 200-400ms overhead is acceptable) ---
-  if (serviceRoleKey && data.results?.length > 0) {
-    const writeClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { persistSession: false },
-    })
-
-    // Reset existing trending flags
-    await writeClient
-      .from("movies")
-      .update({ is_trending: false })
-      .eq("is_trending", true)
-
-    // Upsert fresh trending movies
-    const now = new Date().toISOString()
-    const rows = data.results.map((m: {
-      id: number
-      title: string
-      poster_path: string | null
-      backdrop_path: string | null
-      overview: string
-      release_date: string
-      vote_average: number
-      vote_count: number
-      genre_ids: number[]
-      popularity: number
-    }) => ({
-      id: m.id,
-      title: m.title,
-      poster_path: m.poster_path,
-      backdrop_path: m.backdrop_path,
-      overview: m.overview,
-      release_date: m.release_date,
-      vote_average: m.vote_average,
-      vote_count: m.vote_count,
-      genre_ids: m.genre_ids,
-      popularity: m.popularity,
-      is_trending: true,
-      updated_at: now,
-    }))
-
-    await writeClient
-      .from("movies")
-      .upsert(rows, { onConflict: "id" })
-  }
-
   return NextResponse.json({ results: data.results, source: "tmdb" })
 }

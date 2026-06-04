@@ -36,19 +36,15 @@ async function fetchTMDB(endpoint: string, token: string): Promise<TMDBMovie[]> 
 }
 
 export async function GET(req: NextRequest) {
-  // --- Auth check ---
+  // --- Auth check: only accept Authorization: Bearer <CRON_SECRET> ---
   const authHeader = req.headers.get("authorization");
-  const cronSecretHeader = req.headers.get("x-cron-secret");
   const cronSecret = process.env.CRON_SECRET;
 
   const bearerToken = authHeader?.startsWith("Bearer ")
     ? authHeader.slice(7)
     : null;
 
-  if (
-    !cronSecret ||
-    (bearerToken !== cronSecret && cronSecretHeader !== cronSecret)
-  ) {
+  if (!cronSecret || bearerToken !== cronSecret) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -58,14 +54,16 @@ export async function GET(req: NextRequest) {
   const tmdbToken = process.env.TMDB_READ_ACCESS_TOKEN;
 
   if (!supabaseUrl || !serviceRoleKey) {
+    console.error("Missing Supabase environment variables");
     return NextResponse.json(
-      { error: "Missing Supabase environment variables" },
+      { error: "Server configuration error" },
       { status: 500 }
     );
   }
   if (!tmdbToken) {
+    console.error("Missing TMDB_READ_ACCESS_TOKEN environment variable");
     return NextResponse.json(
-      { error: "Missing TMDB_READ_ACCESS_TOKEN environment variable" },
+      { error: "Server configuration error" },
       { status: 500 }
     );
   }
@@ -76,10 +74,17 @@ export async function GET(req: NextRequest) {
   });
 
   // --- Fetch from TMDB ---
-  const [trending, nowPlaying] = await Promise.all([
-    fetchTMDB("/trending/movie/week", tmdbToken),
-    fetchTMDB("/movie/now_playing", tmdbToken),
-  ]);
+  let trending: TMDBMovie[] = [];
+  let nowPlaying: TMDBMovie[] = [];
+  try {
+    [trending, nowPlaying] = await Promise.all([
+      fetchTMDB("/trending/movie/week", tmdbToken),
+      fetchTMDB("/movie/now_playing", tmdbToken),
+    ]);
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 
   // Deduplicate by movie id
   const seen = new Set<number>();
@@ -102,8 +107,9 @@ export async function GET(req: NextRequest) {
     .eq("is_trending", true);
 
   if (resetError) {
+    console.error(resetError);
     return NextResponse.json(
-      { error: `Failed to reset trending flag: ${resetError.message}` },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -129,8 +135,9 @@ export async function GET(req: NextRequest) {
     .upsert(rows, { onConflict: "id" });
 
   if (upsertError) {
+    console.error(upsertError);
     return NextResponse.json(
-      { error: `Failed to upsert movies: ${upsertError.message}` },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
