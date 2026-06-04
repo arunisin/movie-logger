@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Dark background with rounded corners -->
+  <rect width="512" height="512" rx="96" fill="#14181c"/>
+
+  <!-- Film strip perforations - left column -->
+  <rect x="52" y="90" width="48" height="38" rx="8" fill="#00e054" opacity="0.25"/>
+  <rect x="52" y="152" width="48" height="38" rx="8" fill="#00e054" opacity="0.25"/>
+  <rect x="52" y="214" width="48" height="38" rx="8" fill="#00e054" opacity="0.25"/>
+  <rect x="52" y="276" width="48" height="38" rx="8" fill="#00e054" opacity="0.25"/>
+  <rect x="52" y="338" width="48" height="38" rx="8" fill="#00e054" opacity="0.25"/>
+  <rect x="52" y="384" width="48" height="38" rx="8" fill="#00e054" opacity="0.25"/>
+
+  <!-- Film strip perforations - right column -->
+  <rect x="412" y="90" width="48" height="38" rx="8" fill="#00e054" opacity="0.25"/>
+  <rect x="412" y="152" width="48" height="38" rx="8" fill="#00e054" opacity="0.25"/>
+  <rect x="412" y="214" width="48" height="38" rx="8" fill="#00e054" opacity="0.25"/>
+  <rect x="412" y="276" width="48" height="38" rx="8" fill="#00e054" opacity="0.25"/>
+  <rect x="412" y="338" width="48" height="38" rx="8" fill="#00e054" opacity="0.25"/>
+  <rect x="412" y="384" width="48" height="38" rx="8" fill="#00e054" opacity="0.25"/>
+
+  <!-- Film strip horizontal rails -->
+  <rect x="36" y="68" width="440" height="22" rx="6" fill="#1e2529"/>
+  <rect x="36" y="422" width="440" height="22" rx="6" fill="#1e2529"/>
+
+  <!-- Central "F" letterform -->
+  <!-- Vertical stem -->
+  <rect x="196" y="148" width="44" height="216" rx="10" fill="#00e054"/>
+  <!-- Top horizontal bar -->
+  <rect x="196" y="148" width="130" height="44" rx="10" fill="#00e054"/>
+  <!-- Middle horizontal bar -->
+  <rect x="196" y="232" width="102" height="38" rx="10" fill="#00e054"/>
+</svg>
