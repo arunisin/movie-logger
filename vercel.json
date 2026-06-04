@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/sync-movies",
       "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/notify-releases",
+      "schedule": "0 9 * * *"
     }
   ]
 }

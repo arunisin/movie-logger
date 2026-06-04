@@ -10,7 +10,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
-import { Globe, Lock, LogOut, Copy, Check } from "lucide-react"
+import { Globe, Lock, LogOut, Copy, Check, Bell } from "lucide-react"
+import { usePushNotifications } from "@/hooks/use-push-notifications"
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -21,6 +22,13 @@ export default function ProfilePage() {
   const { data: profile, isLoading: profileLoading } = useProfile()
   const { data: entries, isLoading: watchlistLoading } = useWatchlist()
   const updateProfile = useUpdateProfile()
+  const {
+    isSupported: notifSupported,
+    isSubscribed: notifSubscribed,
+    isLoading: notifLoading,
+    subscribe: handleNotifSubscribe,
+    unsubscribe: handleNotifUnsubscribe,
+  } = usePushNotifications()
 
   useEffect(() => {
     const supabase = createClient()
@@ -193,6 +201,43 @@ export default function ProfilePage() {
               </Button>
             </div>
           )}
+
+          {/* Push notifications toggle */}
+          <div className="px-4 py-4 flex items-center justify-between gap-3 border-t border-border/50">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="size-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                <Bell className={cn("size-4", notifSubscribed ? "text-primary" : "text-muted-foreground")} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground">Push notifications</p>
+                <p className="text-xs text-muted-foreground">
+                  {!notifSupported
+                    ? "Not supported in this browser"
+                    : notifSubscribed
+                    ? "You'll be notified about upcoming releases"
+                    : "Get notified when tracked movies release"}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={notifSubscribed}
+              onClick={notifSubscribed ? handleNotifUnsubscribe : handleNotifSubscribe}
+              disabled={!notifSupported || notifLoading}
+              className={cn(
+                "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50",
+                notifSubscribed ? "bg-primary" : "bg-secondary border border-border"
+              )}
+            >
+              <span
+                className={cn(
+                  "pointer-events-none inline-block size-4 rounded-full bg-white shadow-sm transform transition-transform",
+                  notifSubscribed ? "translate-x-6" : "translate-x-1"
+                )}
+              />
+            </button>
+          </div>
         </div>
 
         {/* Sign out */}
