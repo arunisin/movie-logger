@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useMemo, useCallback } from "react"
+import { Suspense, useMemo, useCallback, useState, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { MovieCard } from "@/components/movie-card"
 import { SearchBar } from "@/components/search-bar"
@@ -10,6 +10,7 @@ import type { DiscoverSort } from "@/components/discover-filters"
 import { useTrendingMovies, useSearchMovies } from "@/hooks/use-movies"
 import { useWatchlist } from "@/hooks/use-watchlist"
 import { useUIStore } from "@/store/ui-store"
+import { useDebounce } from "@/hooks/use-debounce"
 
 function MovieGridSkeletons() {
   return (
@@ -29,23 +30,35 @@ function DiscoverContent() {
   const router = useRouter()
   const { openMovieSheet } = useUIStore()
 
-  const searchQuery = searchParams.get('q') ?? ''
-  const discoverGenre = searchParams.get('genre') ? Number(searchParams.get('genre')) : null
-  const discoverSort = (searchParams.get('sort') as DiscoverSort) ?? 'trending'
+  // Local input state — instant feedback, no navigation on every keystroke
+  const [searchInput, setSearchInput] = useState(searchParams.get("q") ?? "")
+  const debouncedSearch = useDebounce(searchInput, 400)
 
-  const updateParams = useCallback((updates: Record<string, string | null>) => {
-    const params = new URLSearchParams(searchParams.toString())
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value === null || value === '') params.delete(key)
-      else params.set(key, value)
-    })
-    router.replace(`/discover?${params.toString()}`, { scroll: false })
-  }, [searchParams, router])
+  const discoverGenre = searchParams.get("genre") ? Number(searchParams.get("genre")) : null
+  const discoverSort = (searchParams.get("sort") as DiscoverSort) ?? "trending"
 
-  const isSearching = searchQuery.length >= 2
+  const updateParams = useCallback(
+    (updates: Record<string, string | null>) => {
+      const params = new URLSearchParams(searchParams.toString())
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value === null || value === "") params.delete(key)
+        else params.set(key, value)
+      })
+      router.replace(`/discover?${params.toString()}`, { scroll: false })
+    },
+    [searchParams, router]
+  )
+
+  // Sync debounced search to URL — one replace per settled value, not per keystroke
+  useEffect(() => {
+    updateParams({ q: debouncedSearch || null })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch])
+
+  const isSearching = debouncedSearch.length >= 2
 
   const trending = useTrendingMovies()
-  const searchResults = useSearchMovies(searchQuery)
+  const searchResults = useSearchMovies(debouncedSearch) // API only fires on debounced value
 
   const movies = isSearching ? searchResults.data : trending.data
   const isLoading = isSearching ? searchResults.isLoading : trending.isLoading
@@ -99,8 +112,8 @@ function DiscoverContent() {
         </div>
         <div className="px-4 pb-3">
           <SearchBar
-            value={searchQuery}
-            onChange={(v) => updateParams({ q: v || null })}
+            value={searchInput}
+            onChange={setSearchInput}
             placeholder="Search movies…"
           />
         </div>
@@ -117,7 +130,7 @@ function DiscoverContent() {
       {/* Section label */}
       <div className="px-4 pt-4 pb-1 flex items-center gap-2">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          {isSearching ? `Results for "${searchQuery}"` : "Trending"}
+          {isSearching ? `Results for "${debouncedSearch}"` : "Trending"}
         </h2>
         {isFilterActive && (
           <span className="text-xs bg-primary/20 text-primary px-1.5 rounded-full">
