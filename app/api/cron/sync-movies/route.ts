@@ -1,3 +1,5 @@
+// Manual admin trigger — no longer scheduled as a cron job.
+// Call with Authorization: Bearer <CRON_SECRET> to force a full cache refresh.
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
