@@ -9,6 +9,7 @@ import {
   useWatchlistStatus,
   useAddToWatchlist,
   useMarkWatched,
+  useMarkNotInterested,
   useRemoveFromWatchlist,
 } from "@/hooks/use-watchlist"
 import { Button } from "@/components/ui/button"
@@ -33,6 +34,7 @@ export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheet
   const status = useWatchlistStatus(movie?.id ?? 0)
   const addMutation = useAddToWatchlist()
   const watchedMutation = useMarkWatched()
+  const notInterestedMutation = useMarkNotInterested()
   const removeMutation = useRemoveFromWatchlist()
 
   if (!movie) return null
@@ -64,7 +66,7 @@ export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheet
   }
 
   const isLoading =
-    addMutation.isPending || watchedMutation.isPending || removeMutation.isPending
+    addMutation.isPending || watchedMutation.isPending || notInterestedMutation.isPending || removeMutation.isPending
 
   return (
     <Drawer.Root open={open} onOpenChange={onOpenChange}>
@@ -81,6 +83,11 @@ export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheet
           <div className="flex justify-center pt-3 pb-1 shrink-0">
             <div className="w-10 h-1 rounded-full bg-border" />
           </div>
+
+          <Drawer.Title className="sr-only">{movie.title}</Drawer.Title>
+          <Drawer.Description className="sr-only">
+            {movie.overview ?? `Details for ${movie.title}`}
+          </Drawer.Description>
 
           {/* close button */}
           <button
@@ -204,6 +211,11 @@ export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheet
                       <X className="size-4" />
                     </Button>
                   </>
+                ) : status === "not_interested" ? (
+                  <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl bg-secondary text-muted-foreground text-sm font-medium">
+                    <X className="size-4" />
+                    Not interested
+                  </div>
                 ) : (
                   <>
                     <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/10 text-primary text-sm font-medium">
@@ -222,6 +234,23 @@ export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheet
                   </>
                 )}
               </div>
+
+              {/* Not interested / Undo */}
+              {status !== 'not_interested' && (
+                <button
+                  onClick={() => notInterestedMutation.mutate(movie)}
+                  disabled={isLoading}
+                  className="w-full text-center text-xs text-muted-foreground py-2 hover:text-foreground transition-colors"
+                >
+                  Not interested
+                </button>
+              )}
+              {status === 'not_interested' && (
+                <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground py-2">
+                  <span>Marked as not interested</span>
+                  <button onClick={() => removeMutation.mutate(movie.id)} className="text-primary hover:underline">Undo</button>
+                </div>
+              )}
             </div>
           </div>
         </Drawer.Content>

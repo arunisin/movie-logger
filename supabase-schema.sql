@@ -210,3 +210,15 @@ CREATE POLICY "Service role manages invites"
   WITH CHECK (auth.role() = 'service_role');
 
 CREATE INDEX idx_invites_code ON invites(code);
+
+-- Allow 'not_interested' status
+ALTER TABLE watchlist DROP CONSTRAINT IF EXISTS watchlist_status_check;
+ALTER TABLE watchlist ADD CONSTRAINT watchlist_status_check
+  CHECK (status IN ('want_to_watch', 'watched', 'not_interested'));
+
+-- Allow authenticated users to upsert TMDB movie data (public data, no RLS needed)
+CREATE POLICY "Authenticated users can insert movies"
+  ON movies FOR INSERT TO authenticated WITH CHECK (true);
+
+CREATE POLICY "Authenticated users can update movies"
+  ON movies FOR UPDATE TO authenticated USING (true) WITH CHECK (true);

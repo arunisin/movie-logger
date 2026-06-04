@@ -133,6 +133,81 @@ export function useMarkWatched() {
   });
 }
 
+export function useMarkNotInterested() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (movie: MovieLike) => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { error: movieError } = await supabase.from("movies").upsert(
+        {
+          id: movie.id,
+          title: movie.title,
+          poster_path: movie.poster_path,
+          backdrop_path: movie.backdrop_path,
+          overview: movie.overview,
+          release_date: movie.release_date,
+          vote_average: movie.vote_average,
+          vote_count: movie.vote_count,
+          genre_ids: movie.genre_ids,
+          popularity: movie.popularity,
+        },
+        { onConflict: "id" }
+      );
+      if (movieError) throw movieError;
+
+      const { data, error } = await supabase
+        .from("watchlist")
+        .upsert(
+          { user_id: user.id, movie_id: movie.id, status: "not_interested" },
+          { onConflict: "user_id,movie_id" }
+        )
+        .select("*, movie:movies(*)")
+        .single();
+      if (error) throw error;
+      return data as WatchlistEntry;
+    },
+    onMutate: async (movie: MovieLike) => {
+      await queryClient.cancelQueries({ queryKey: ["watchlist"] });
+      const previous = queryClient.getQueryData<WatchlistEntry[]>(["watchlist"]);
+      queryClient.setQueryData<WatchlistEntry[]>(["watchlist"], (old) => {
+        const entry: WatchlistEntry = {
+          id: `optimistic-${movie.id}`,
+          user_id: "optimistic",
+          movie_id: movie.id,
+          status: "not_interested",
+          added_at: new Date().toISOString(),
+          watched_at: null,
+          movie: {
+            ...movie,
+            is_trending: false,
+            updated_at: new Date().toISOString(),
+          },
+        };
+        if (!old) return [entry];
+        const exists = old.some((e) => e.movie_id === movie.id);
+        if (exists) {
+          return old.map((e) =>
+            e.movie_id === movie.id ? { ...e, status: "not_interested" } : e
+          );
+        }
+        return [entry, ...old];
+      });
+      return { previous };
+    },
+    onError: (_err, _movie, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(["watchlist"], context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["watchlist"] });
+    },
+  });
+}
+
 export function useRemoveFromWatchlist() {
   const queryClient = useQueryClient();
   return useMutation({

@@ -1,11 +1,12 @@
 "use client"
 
+import { Suspense } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { WatchlistItem } from "@/components/watchlist-item"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useWatchlist } from "@/hooks/use-watchlist"
-import { useUIStore } from "@/store/ui-store"
 import type { WatchlistFilter } from "@/lib/types"
 
 function WatchlistSkeletons() {
@@ -30,17 +31,22 @@ const EMPTY_MESSAGES: Record<WatchlistFilter, string> = {
   watched: "You haven't marked any movies as watched yet.",
 }
 
-export default function WatchlistPage() {
+function WatchlistContent() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const { data: entries, isLoading } = useWatchlist()
-  const { watchlistFilter, setWatchlistFilter } = useUIStore()
+
+  const tab = (searchParams.get('tab') as WatchlistFilter) ?? 'all'
+  const setTab = (t: WatchlistFilter) =>
+    router.replace(`/watchlist?tab=${t}`, { scroll: false })
 
   const wantToWatch = entries?.filter((e) => e.status === "want_to_watch") ?? []
   const watched = entries?.filter((e) => e.status === "watched") ?? []
 
   const filteredEntries =
-    watchlistFilter === "want_to_watch"
+    tab === "want_to_watch"
       ? wantToWatch
-      : watchlistFilter === "watched"
+      : tab === "watched"
       ? watched
       : entries ?? []
 
@@ -68,8 +74,8 @@ export default function WatchlistPage() {
 
         {/* Filter tabs */}
         <Tabs
-          value={watchlistFilter}
-          onValueChange={(v) => setWatchlistFilter(v as WatchlistFilter)}
+          value={tab}
+          onValueChange={(v) => setTab(v as WatchlistFilter)}
         >
           <TabsList className="w-full">
             <TabsTrigger value="all" className="flex-1 text-xs">
@@ -96,14 +102,22 @@ export default function WatchlistPage() {
         ) : (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
             <span className="text-4xl" aria-hidden="true">
-              {watchlistFilter === "watched" ? "✅" : "🎬"}
+              {tab === "watched" ? "✅" : "🎬"}
             </span>
             <p className="text-muted-foreground text-sm max-w-xs">
-              {EMPTY_MESSAGES[watchlistFilter]}
+              {EMPTY_MESSAGES[tab]}
             </p>
           </div>
         )}
       </div>
     </div>
+  )
+}
+
+export default function WatchlistPage() {
+  return (
+    <Suspense>
+      <WatchlistContent />
+    </Suspense>
   )
 }

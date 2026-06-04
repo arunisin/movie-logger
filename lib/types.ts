@@ -38,12 +38,12 @@ export interface WatchlistEntry {
   id: string
   user_id: string
   movie_id: number
-  status: "want_to_watch" | "watched"
+  status: "want_to_watch" | "watched" | "not_interested"
   added_at: string
   watched_at: string | null
   movie: Movie
 }
 
-export type WatchlistStatus = "want_to_watch" | "watched" | null
+export type WatchlistStatus = "want_to_watch" | "watched" | "not_interested" | null
 export type WatchlistFilter = "all" | "want_to_watch" | "watched"
 export type MovieLike = TMDBMovie | Movie
