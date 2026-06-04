@@ -2,11 +2,15 @@
   "name": "Filmlog",
   "short_name": "Filmlog",
   "description": "Track movies you want to watch and have watched.",
+  "id": "/",
   "start_url": "/discover",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#14181c",
   "theme_color": "#14181c",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "categories": ["entertainment", "lifestyle"],
+  "lang": "en",
   "icons": [
     {
       "src": "/icons/icon-192.svg",
@@ -19,6 +23,20 @@
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Discover",
+      "short_name": "Discover",
+      "url": "/discover",
+      "icons": [{ "src": "/icons/icon-192.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Watchlist",
+      "short_name": "Watchlist",
+      "url": "/watchlist",
+      "icons": [{ "src": "/icons/icon-192.svg", "sizes": "192x192" }]
     }
   ]
 }
