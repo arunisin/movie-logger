@@ -238,3 +238,7 @@ ALTER TABLE profiles
 -- Autoplay trailer preference
 ALTER TABLE profiles
   ADD COLUMN IF NOT EXISTS autoplay_trailer BOOLEAN NOT NULL DEFAULT true;
+
+-- Multiple admins support
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false;
