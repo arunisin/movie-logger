@@ -100,9 +100,9 @@ export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheet
           </button>
 
           <div className="overflow-y-auto flex-1">
-            {/* backdrop hero */}
+            {/* backdrop hero with play button */}
             {backdrop && (
-              <div className="relative h-44 w-full shrink-0">
+              <div className="relative h-48 w-full shrink-0">
                 <Image
                   src={backdrop}
                   alt=""
@@ -110,7 +110,22 @@ export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheet
                   className="object-cover"
                   sizes="100vw"
                 />
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/30 to-card" />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-card" />
+
+                {/* Netflix-style play button — centred on banner */}
+                {trailerUrl && (
+                  <a
+                    href={trailerUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute inset-0 flex items-center justify-center group"
+                    aria-label="Watch trailer"
+                  >
+                    <div className="size-14 rounded-full bg-white/20 backdrop-blur-sm border border-white/40 flex items-center justify-center transition-all duration-200 group-hover:bg-white/30 group-hover:scale-105 group-active:scale-95 shadow-xl">
+                      <Play className="size-6 text-white fill-white ml-0.5" />
+                    </div>
+                  </a>
+                )}
               </div>
             )}
 
@@ -146,6 +161,18 @@ export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheet
                         <span>{rating}</span>
                       </div>
                     )}
+                    {/* Trailer link when no backdrop is shown */}
+                    {trailerUrl && !backdrop && (
+                      <a
+                        href={trailerUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <Play className="size-3 fill-current" />
+                        Trailer
+                      </a>
+                    )}
                   </div>
 
                   {/* genres */}
@@ -170,25 +197,8 @@ export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheet
                 </p>
               )}
 
-              {/* trailer button */}
-              {trailerUrl && (
-                <a
-                  href={trailerUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cn(
-                    "flex items-center justify-center gap-2 mt-4 w-full rounded-xl h-10",
-                    "bg-red-600/90 hover:bg-red-600 active:bg-red-700 transition-colors",
-                    "text-white text-sm font-semibold"
-                  )}
-                >
-                  <Play className="size-4 fill-current" />
-                  Watch Trailer
-                </a>
-              )}
-
               {/* action buttons */}
-              <div className="flex gap-2 mt-3">
+              <div className="flex gap-2 mt-5">
                 {status === null ? (
                   <>
                     <Button
