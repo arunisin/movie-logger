@@ -13,7 +13,7 @@ function getDaysUntilRelease(releaseDate: string | null): number | null {
   today.setHours(0, 0, 0, 0)
   release.setHours(0, 0, 0, 0)
   const diff = Math.ceil((release.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-  return diff > 0 ? diff : null
+  return diff >= 0 ? diff : null // 0 = today
 }
 
 function getHypeBadge(pop: number | null, rating: number | null): string | null {
@@ -37,6 +37,7 @@ export function WatchlistCard({ entry, onClick }: WatchlistCardProps) {
   const year = releaseYear(entry.movie.release_date)
   const days = getDaysUntilRelease(entry.movie.release_date)
 
+  const isToday = days === 0
   const isImminent = days !== null && days <= 7
   const isSoon = days !== null && days <= 30
   const hype = getHypeBadge(entry.movie.popularity, entry.movie.vote_average)
@@ -111,12 +112,14 @@ export function WatchlistCard({ entry, onClick }: WatchlistCardProps) {
         <div
           className={cn(
             "absolute top-2 left-2 px-2 py-0.5 rounded-full text-xs font-bold tracking-wide shadow-md",
-            isImminent
+            isToday
+              ? "bg-white text-black animate-pulse"
+              : isImminent
               ? "bg-amber-500 text-black animate-pulse"
               : "bg-amber-500/80 text-black"
           )}
         >
-          {days}d
+          {isToday ? "TODAY" : `${days}d`}
         </div>
       )}
 

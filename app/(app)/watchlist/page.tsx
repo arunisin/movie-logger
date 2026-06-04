@@ -19,7 +19,7 @@ function getDaysUntilRelease(releaseDate: string | null): number | null {
   today.setHours(0, 0, 0, 0)
   release.setHours(0, 0, 0, 0)
   const diff = Math.ceil((release.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-  return diff > 0 ? diff : null
+  return diff >= 0 ? diff : null // 0 = today
 }
 
 const TABS: { value: WatchlistFilter; label: string }[] = [

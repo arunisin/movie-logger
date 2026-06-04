@@ -12,10 +12,11 @@ function getDaysUntilRelease(releaseDate: string | null): number | null {
   today.setHours(0, 0, 0, 0)
   release.setHours(0, 0, 0, 0)
   const diff = Math.ceil((release.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-  return diff > 0 ? diff : null
+  return diff >= 0 ? diff : null // 0 = today
 }
 
 function urgencyLabel(days: number): string {
+  if (days === 0) return "TODAY"
   if (days === 1) return "Tomorrow"
   if (days <= 7) return `${days} days`
   if (days <= 14) return "This week"
@@ -59,6 +60,7 @@ export function WatchlistReleasingSoon({ entries, onCardClick }: WatchlistReleas
           const poster = posterUrl(entry.movie.poster_path, "w500")
           const year = releaseYear(entry.movie.release_date)
           const days = getDaysUntilRelease(entry.movie.release_date)
+          const isToday = days === 0
           const isImminent = days !== null && days <= 7
           const isSoon = days !== null && days <= 30
 
@@ -72,7 +74,9 @@ export function WatchlistReleasingSoon({ entries, onCardClick }: WatchlistReleas
                 className={cn(
                   "relative group rounded-2xl overflow-hidden aspect-[2/3]",
                   "transition-transform duration-300 active:scale-95",
-                  isImminent
+                  isToday
+                    ? "ring-2 ring-white/60 shadow-[0_0_40px_rgba(255,255,255,0.3)]"
+                    : isImminent
                     ? "ring-2 ring-amber-400 shadow-[0_0_32px_rgba(251,191,36,0.45)]"
                     : isSoon
                     ? "ring-2 ring-amber-500/70 shadow-[0_0_20px_rgba(251,191,36,0.25)]"
@@ -107,15 +111,23 @@ export function WatchlistReleasingSoon({ entries, onCardClick }: WatchlistReleas
                 {/* Countdown — centred in the amber tint zone */}
                 {days !== null && (
                   <div className="absolute top-0 inset-x-0 flex flex-col items-center pt-4 pointer-events-none">
-                    <span className={cn(
-                      "font-black tabular-nums leading-none",
-                      isImminent ? "text-5xl text-amber-300" : "text-4xl text-amber-400"
-                    )}>
-                      {days}
-                    </span>
-                    <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-amber-400/80 mt-1">
-                      {days === 1 ? "DAY" : "DAYS"}
-                    </span>
+                    {isToday ? (
+                      <span className="text-3xl font-black tracking-widest text-amber-300 drop-shadow-lg">
+                        TODAY
+                      </span>
+                    ) : (
+                      <>
+                        <span className={cn(
+                          "font-black tabular-nums leading-none",
+                          isImminent ? "text-5xl text-amber-300" : "text-4xl text-amber-400"
+                        )}>
+                          {days}
+                        </span>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-amber-400/80 mt-1">
+                          {days === 1 ? "DAY" : "DAYS"}
+                        </span>
+                      </>
+                    )}
                   </div>
                 )}
 
