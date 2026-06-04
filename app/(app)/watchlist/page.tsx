@@ -105,7 +105,7 @@ function WatchlistContent() {
   return (
     <div className="flex flex-col min-h-dvh">
       {/* Sticky header */}
-      <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border/50 px-4 pt-4 pb-3">
+      <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border/50 px-4 pt-4-safe pb-3">
         <div className="flex items-center justify-between mb-3">
           <h1 className="text-xl font-bold">My Watchlist</h1>
           {!isLoading && (

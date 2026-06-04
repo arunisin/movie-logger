@@ -72,7 +72,7 @@ export default function PublicProfilePage() {
   return (
     <div className="flex flex-col min-h-dvh">
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border/50 px-4 pt-4 pb-3 flex items-center gap-3">
+      <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border/50 px-4 pt-4-safe pb-3 flex items-center gap-3">
         <Button
           variant="ghost"
           size="icon"

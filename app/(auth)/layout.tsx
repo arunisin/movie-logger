@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-dvh bg-background flex flex-col items-center justify-center px-4">
+    <div className="min-h-dvh bg-background flex flex-col items-center justify-center px-4 pt-safe pb-safe">
       {/* Filmlog brand mark */}
       <div className="mb-8 flex flex-col items-center gap-2 select-none">
         <div className="relative flex items-center justify-center">

@@ -5,7 +5,7 @@ export const revalidate = 21600
 
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   const tmdbToken = process.env.TMDB_READ_ACCESS_TOKEN

@@ -122,7 +122,7 @@ function DiscoverContent() {
 
   return (
     <div className="flex flex-col">
-      <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border/50">
+      <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border/50 pt-safe">
         <div className="flex items-center px-4 pt-4 pb-2">
           <span className="text-xl font-bold text-primary tracking-tight">Filmlog</span>
         </div>

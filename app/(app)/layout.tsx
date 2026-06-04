@@ -11,7 +11,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <main className="min-h-dvh pb-20">{children}</main>
+      <main className="min-h-dvh pb-nav-safe">{children}</main>
       <BottomNav />
       <InstallPrompt />
       <MovieDetailSheet

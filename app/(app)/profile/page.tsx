@@ -77,7 +77,7 @@ export default function ProfilePage() {
   return (
     <div className="flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border/50 px-4 pt-4 pb-3">
+      <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border/50 px-4 pt-4-safe pb-3">
         <h1 className="text-xl font-bold text-foreground">Profile</h1>
       </header>
 
