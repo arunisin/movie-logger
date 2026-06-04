@@ -15,6 +15,14 @@ function getDaysUntilRelease(releaseDate: string | null): number | null {
   return diff > 0 ? diff : null
 }
 
+function urgencyLabel(days: number): string {
+  if (days === 1) return "Tomorrow"
+  if (days <= 7) return `${days} days`
+  if (days <= 14) return "This week"
+  if (days <= 30) return "This month"
+  return `${days} days`
+}
+
 interface WatchlistReleasingSoonProps {
   entries: WatchlistEntry[]
   onCardClick: (entry: WatchlistEntry) => void
@@ -23,38 +31,53 @@ interface WatchlistReleasingSoonProps {
 export function WatchlistReleasingSoon({ entries, onCardClick }: WatchlistReleasingSoonProps) {
   if (entries.length === 0) return null
 
+  // Sort by release date ascending (soonest first)
+  const sorted = [...entries].sort((a, b) =>
+    (a.movie.release_date ?? "").localeCompare(b.movie.release_date ?? "")
+  )
+
   return (
-    <section className="mb-2">
+    <section className="mb-5">
       {/* Section header */}
-      <div className="flex items-center gap-2 px-4 mb-3">
-        <div className="size-1.5 rounded-full bg-amber-400 animate-pulse" />
+      <div className="flex items-center gap-2.5 px-4 mb-4">
+        <div className="flex gap-0.5">
+          <div className="size-1.5 rounded-full bg-amber-400 animate-pulse" />
+          <div className="size-1.5 rounded-full bg-amber-400 animate-pulse [animation-delay:150ms]" />
+          <div className="size-1.5 rounded-full bg-amber-400 animate-pulse [animation-delay:300ms]" />
+        </div>
         <h3 className="text-xs font-bold uppercase tracking-widest text-amber-400">
           Releasing Soon
         </h3>
+        <span className="text-xs text-amber-400/60 font-medium ml-auto">
+          {sorted.length} film{sorted.length !== 1 ? "s" : ""}
+        </span>
       </div>
 
-      {/* Horizontal scroll strip */}
-      <div className="flex gap-3 overflow-x-auto no-scrollbar px-4 pb-2">
-        {entries.map((entry) => {
-          const poster = posterUrl(entry.movie.poster_path, "w342")
+      {/* Horizontal scroll strip — bigger cards */}
+      <div className="flex gap-3 overflow-x-auto no-scrollbar px-4 pb-3">
+        {sorted.map((entry) => {
+          const poster = posterUrl(entry.movie.poster_path, "w500")
           const year = releaseYear(entry.movie.release_date)
           const days = getDaysUntilRelease(entry.movie.release_date)
           const isImminent = days !== null && days <= 7
+          const isSoon = days !== null && days <= 30
 
           return (
-            <div
+            <button
               key={entry.id}
-              className="shrink-0 w-[42vw] max-w-[160px]"
+              onClick={() => onCardClick(entry)}
+              className="shrink-0 w-[55vw] max-w-[220px] focus:outline-none"
             >
               <div
                 className={cn(
-                  "relative group cursor-pointer rounded-xl overflow-hidden aspect-[2/3]",
-                  "ring-2 ring-amber-500/60",
+                  "relative group rounded-2xl overflow-hidden aspect-[2/3]",
+                  "transition-transform duration-300 active:scale-95",
                   isImminent
-                    ? "ring-amber-400 shadow-[0_0_22px_rgba(251,191,36,0.35)] animate-pulse-slow"
-                    : "shadow-[0_0_14px_rgba(251,191,36,0.18)]"
+                    ? "ring-2 ring-amber-400 shadow-[0_0_32px_rgba(251,191,36,0.45)]"
+                    : isSoon
+                    ? "ring-2 ring-amber-500/70 shadow-[0_0_20px_rgba(251,191,36,0.25)]"
+                    : "ring-1 ring-amber-500/40"
                 )}
-                onClick={() => onCardClick(entry)}
               >
                 {/* Poster */}
                 {poster ? (
@@ -62,69 +85,77 @@ export function WatchlistReleasingSoon({ entries, onCardClick }: WatchlistReleas
                     src={poster}
                     alt={entry.movie.title}
                     fill
-                    sizes="160px"
+                    sizes="220px"
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 ) : (
                   <div className="absolute inset-0 bg-secondary" />
                 )}
 
-                {/* Shimmer effect on hover */}
-                <div
-                  className={cn(
-                    "absolute inset-0 pointer-events-none",
-                    "bg-gradient-to-r from-transparent via-white/5 to-transparent",
-                    "-translate-x-full group-hover:translate-x-full transition-transform duration-700"
-                  )}
-                />
+                {/* Shimmer on hover */}
+                <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-transparent via-white/6 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
 
-                {/* Full gradient overlay */}
-                <div className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-black/95 via-black/50 to-transparent pointer-events-none" />
+                {/* Bottom gradient */}
+                <div className="absolute inset-x-0 bottom-0 h-4/5 bg-gradient-to-t from-black via-black/60 to-transparent pointer-events-none" />
 
-                {/* Amber top tint */}
-                <div className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-amber-900/30 to-transparent pointer-events-none" />
+                {/* Amber top tint — stronger for imminent */}
+                <div className={cn(
+                  "absolute inset-x-0 top-0 h-2/5 pointer-events-none bg-gradient-to-b to-transparent",
+                  isImminent ? "from-amber-900/50" : "from-amber-900/25"
+                )} />
 
-                {/* Countdown — prominent at top */}
+                {/* Countdown — centred in the amber tint zone */}
                 {days !== null && (
-                  <div className="absolute top-0 inset-x-0 flex flex-col items-center pt-3 pointer-events-none">
-                    <span
-                      className={cn(
-                        "text-2xl font-black tabular-nums leading-none",
-                        isImminent ? "text-amber-300" : "text-amber-400"
-                      )}
-                    >
+                  <div className="absolute top-0 inset-x-0 flex flex-col items-center pt-4 pointer-events-none">
+                    <span className={cn(
+                      "font-black tabular-nums leading-none",
+                      isImminent ? "text-5xl text-amber-300" : "text-4xl text-amber-400"
+                    )}>
                       {days}
                     </span>
-                    <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-amber-400/80 mt-0.5">
-                      DAYS
+                    <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-amber-400/80 mt-1">
+                      {days === 1 ? "DAY" : "DAYS"}
                     </span>
                   </div>
                 )}
 
+                {/* Urgency pill */}
+                {days !== null && (
+                  <div className={cn(
+                    "absolute top-3 right-3 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide pointer-events-none",
+                    isImminent
+                      ? "bg-amber-400 text-black animate-pulse"
+                      : "bg-amber-500/80 text-black"
+                  )}>
+                    {urgencyLabel(days)}
+                  </div>
+                )}
+
                 {/* Bottom content */}
-                <div className="absolute inset-x-0 bottom-0 p-2.5 pointer-events-none">
-                  <p className="text-white text-xs font-semibold leading-tight line-clamp-2">
+                <div className="absolute inset-x-0 bottom-0 p-3 pointer-events-none">
+                  <p className="text-white text-sm font-semibold leading-tight line-clamp-2">
                     {entry.movie.title}
                   </p>
                   {year && (
-                    <p className="text-white/50 text-[10px] mt-0.5">{year}</p>
+                    <p className="text-white/50 text-xs mt-0.5">{year}</p>
                   )}
                 </div>
 
-                {/* Inset ring glow */}
-                <div
-                  className={cn(
-                    "absolute inset-0 rounded-xl ring-2 pointer-events-none",
-                    isImminent
-                      ? "ring-amber-400 shadow-[inset_0_0_24px_rgba(251,191,36,0.20)]"
-                      : "ring-amber-500/50 shadow-[inset_0_0_14px_rgba(251,191,36,0.10)]"
-                  )}
-                />
+                {/* Inset glow ring */}
+                <div className={cn(
+                  "absolute inset-0 rounded-2xl pointer-events-none",
+                  isImminent
+                    ? "shadow-[inset_0_0_30px_rgba(251,191,36,0.22)]"
+                    : "shadow-[inset_0_0_18px_rgba(251,191,36,0.10)]"
+                )} />
               </div>
-            </div>
+            </button>
           )
         })}
       </div>
+
+      {/* Divider */}
+      <div className="mx-4 mt-1 h-px bg-border/50" />
     </section>
   )
 }

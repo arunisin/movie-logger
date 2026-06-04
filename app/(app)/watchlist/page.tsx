@@ -23,7 +23,6 @@ function getDaysUntilRelease(releaseDate: string | null): number | null {
 }
 
 const TABS: { value: WatchlistFilter; label: string }[] = [
-  { value: "all", label: "All" },
   { value: "want_to_watch", label: "To Watch" },
   { value: "watched", label: "Watched" },
 ]
@@ -64,7 +63,7 @@ function WatchlistContent() {
   const router = useRouter()
   const { openMovieSheet } = useUIStore()
 
-  const tab = (searchParams.get("tab") as WatchlistFilter) ?? "all"
+  const tab = (searchParams.get("tab") as WatchlistFilter) ?? "want_to_watch"
   const setTab = (t: WatchlistFilter) =>
     router.replace(`/watchlist?tab=${t}`, { scroll: false })
 
@@ -76,7 +75,7 @@ function WatchlistContent() {
       entries.filter((e) => {
         if (e.status !== "want_to_watch" || !e.movie.release_date) return false
         const days = getDaysUntilRelease(e.movie.release_date)
-        return days !== null && days <= 60
+        return days !== null && days <= 90
       }),
     [entries]
   )
