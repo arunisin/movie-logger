@@ -2,7 +2,7 @@
 
 import { Drawer } from "vaul"
 import Image from "next/image"
-import { X, Plus, Check, BookmarkCheck, Bookmark, Star, Play } from "lucide-react"
+import { X, Plus, Check, BookmarkCheck, Bookmark, Star, Play, Volume2 } from "lucide-react"
 import { posterUrl, backdropUrl, releaseYear } from "@/lib/tmdb"
 import type { TMDBMovie, Movie } from "@/lib/types"
 import {
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { useTrailer } from "@/hooks/use-trailer"
+import { useState, useEffect } from "react"
 
 const GENRE_MAP: Record<number, string> = {
   28: "Action", 12: "Adventure", 16: "Animation", 35: "Comedy",
@@ -33,8 +34,19 @@ interface MovieDetailSheetProps {
 
 export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheetProps) {
   const status = useWatchlistStatus(movie?.id ?? 0)
-  const { data: trailerUrl } = useTrailer(movie?.id ?? null)
+  const { data: trailer } = useTrailer(open ? (movie?.id ?? null) : null)
+  const [showVideo, setShowVideo] = useState(false)
   const addMutation = useAddToWatchlist()
+
+  // Auto-play video after a short delay when trailer loads and sheet is open
+  useEffect(() => {
+    if (open && trailer?.embedUrl) {
+      const t = setTimeout(() => setShowVideo(true), 800)
+      return () => clearTimeout(t)
+    } else {
+      setShowVideo(false)
+    }
+  }, [open, trailer?.embedUrl])
   const watchedMutation = useMarkWatched()
   const notInterestedMutation = useMarkNotInterested()
   const removeMutation = useRemoveFromWatchlist()
@@ -100,30 +112,75 @@ export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheet
           </button>
 
           <div className="overflow-y-auto flex-1">
-            {/* backdrop hero with play button */}
-            {backdrop && (
-              <div className="relative h-48 w-full shrink-0">
-                <Image
-                  src={backdrop}
-                  alt=""
-                  fill
-                  className="object-cover"
-                  sizes="100vw"
-                />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-card" />
+            {/* backdrop / inline trailer player */}
+            {(backdrop || trailer) && (
+              <div className="relative w-full shrink-0 overflow-hidden" style={{ aspectRatio: "16/9", maxHeight: "220px" }}>
+                {/* static backdrop — always rendered, fades out when video plays */}
+                {backdrop && (
+                  <Image
+                    src={backdrop}
+                    alt=""
+                    fill
+                    className={cn(
+                      "object-cover transition-opacity duration-700",
+                      showVideo ? "opacity-0" : "opacity-100"
+                    )}
+                    sizes="100vw"
+                  />
+                )}
 
-                {/* Netflix-style play button — centred on banner */}
-                {trailerUrl && (
-                  <a
-                    href={trailerUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="absolute inset-0 flex items-center justify-center group"
-                    aria-label="Watch trailer"
+                {/* YouTube inline player — lazy-mounted after delay */}
+                {trailer && showVideo && (
+                  <iframe
+                    key={trailer.key}
+                    src={trailer.embedUrl}
+                    className="absolute inset-0 w-full h-full"
+                    allow="autoplay; encrypted-media; picture-in-picture"
+                    allowFullScreen
+                    title={`${movie.title} trailer`}
+                  />
+                )}
+
+                {/* Bottom gradient over video */}
+                <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-card to-transparent pointer-events-none z-10" />
+
+                {/* Top-left: show-poster toggle when video is playing */}
+                {showVideo && (
+                  <button
+                    onClick={() => setShowVideo(false)}
+                    className="absolute top-2 left-2 z-20 flex items-center gap-1 px-2 py-1 rounded-full bg-black/60 backdrop-blur-sm text-white/80 text-xs hover:text-white transition-colors"
+                  >
+                    <X className="size-3" />
+                    Hide
+                  </button>
+                )}
+
+                {/* Play button when no video playing */}
+                {!showVideo && trailer && (
+                  <button
+                    onClick={() => setShowVideo(true)}
+                    className="absolute inset-0 flex items-center justify-center group z-10"
+                    aria-label="Play trailer"
                   >
                     <div className="size-14 rounded-full bg-white/20 backdrop-blur-sm border border-white/40 flex items-center justify-center transition-all duration-200 group-hover:bg-white/30 group-hover:scale-105 group-active:scale-95 shadow-xl">
                       <Play className="size-6 text-white fill-white ml-0.5" />
                     </div>
+                    <span className="absolute bottom-6 text-white/80 text-xs font-medium tracking-wide">
+                      Watch Trailer
+                    </span>
+                  </button>
+                )}
+
+                {/* Watch on YouTube link — bottom right when playing */}
+                {showVideo && trailer && (
+                  <a
+                    href={trailer.watchUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute bottom-3 right-3 z-20 flex items-center gap-1 px-2 py-1 rounded-full bg-black/60 backdrop-blur-sm text-white/70 text-xs hover:text-white transition-colors"
+                  >
+                    <Volume2 className="size-3" />
+                    Full screen
                   </a>
                 )}
               </div>
@@ -161,10 +218,10 @@ export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheet
                         <span>{rating}</span>
                       </div>
                     )}
-                    {/* Trailer link when no backdrop is shown */}
-                    {trailerUrl && !backdrop && (
+                    {/* Trailer link when neither backdrop nor video section is shown */}
+                    {trailer && !backdrop && !trailer.embedUrl && (
                       <a
-                        href={trailerUrl}
+                        href={trailer.watchUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
