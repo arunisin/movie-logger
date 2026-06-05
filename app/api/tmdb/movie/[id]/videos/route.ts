@@ -27,10 +27,19 @@ export async function GET(
 
   const data = await res.json()
 
-  // Return only YouTube trailers, official first
-  const trailers: { key: string; name: string; official: boolean }[] = (data.results ?? [])
-    .filter((v: { site: string; type: string }) => v.site === "YouTube" && v.type === "Trailer")
-    .sort((a: { official: boolean }, b: { official: boolean }) => Number(b.official) - Number(a.official))
+  const youtube = (data.results ?? []).filter((v: { site: string }) => v.site === "YouTube")
+  const byOfficial = (a: { official: boolean }, b: { official: boolean }) => Number(b.official) - Number(a.official)
+
+  // Prefer trailers; fall back to teasers if none exist
+  let trailers = youtube
+    .filter((v: { type: string }) => v.type === "Trailer")
+    .sort(byOfficial)
+
+  if (trailers.length === 0) {
+    trailers = youtube
+      .filter((v: { type: string }) => v.type === "Teaser")
+      .sort(byOfficial)
+  }
 
   return NextResponse.json({ trailers })
 }
