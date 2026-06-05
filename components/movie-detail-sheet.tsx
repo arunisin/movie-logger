@@ -2,21 +2,24 @@
 
 import { Drawer } from "vaul"
 import Image from "next/image"
-import { X, Plus, Check, BookmarkCheck, Bookmark, Star, Play, Volume2 } from "lucide-react"
+import { X, Check, BookmarkCheck, Bookmark, Star, Play, Volume2 } from "lucide-react"
 import { posterUrl, backdropUrl, releaseYear } from "@/lib/tmdb"
 import type { TMDBMovie, Movie } from "@/lib/types"
 import {
   useWatchlistStatus,
+  useWatchlistEntry,
   useAddToWatchlist,
   useMarkWatched,
   useMarkNotInterested,
   useRemoveFromWatchlist,
+  useRateMovie,
 } from "@/hooks/use-watchlist"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { useTrailer } from "@/hooks/use-trailer"
 import { useProfile } from "@/hooks/use-profile"
+import { StarRating } from "@/components/star-rating"
 import { useState, useEffect } from "react"
 
 const GENRE_MAP: Record<number, string> = {
@@ -35,14 +38,15 @@ interface MovieDetailSheetProps {
 
 export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheetProps) {
   const status = useWatchlistStatus(movie?.id ?? 0)
+  const currentEntry = useWatchlistEntry(movie?.id ?? 0)
   const { data: trailer } = useTrailer(open ? (movie?.id ?? null) : null)
   const { data: profile } = useProfile()
   const [showVideo, setShowVideo] = useState(false)
   const addMutation = useAddToWatchlist()
+  const rateMutation = useRateMovie()
 
   const autoplay = profile?.autoplay_trailer ?? true
 
-  // Auto-play video after a short delay when trailer loads, sheet is open, and autoplay is on
   useEffect(() => {
     if (open && trailer?.embedUrl && autoplay) {
       const t = setTimeout(() => setShowVideo(true), 800)
@@ -51,6 +55,7 @@ export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheet
       setShowVideo(false)
     }
   }, [open, trailer?.embedUrl, autoplay])
+
   const watchedMutation = useMarkWatched()
   const notInterestedMutation = useMarkNotInterested()
   const removeMutation = useRemoveFromWatchlist()
@@ -119,7 +124,6 @@ export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheet
             {/* backdrop / inline trailer player */}
             {(backdrop || trailer) && (
               <div className="relative w-full shrink-0 overflow-hidden" style={{ aspectRatio: "16/9", maxHeight: "220px" }}>
-                {/* static backdrop — always rendered, fades out when video plays */}
                 {backdrop && (
                   <Image
                     src={backdrop}
@@ -133,7 +137,6 @@ export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheet
                   />
                 )}
 
-                {/* YouTube inline player — lazy-mounted after delay */}
                 {trailer && showVideo && (
                   <iframe
                     key={trailer.key}
@@ -145,10 +148,8 @@ export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheet
                   />
                 )}
 
-                {/* Bottom gradient over video */}
                 <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-card to-transparent pointer-events-none z-10" />
 
-                {/* Top-left: show-poster toggle when video is playing */}
                 {showVideo && (
                   <button
                     onClick={() => setShowVideo(false)}
@@ -159,7 +160,6 @@ export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheet
                   </button>
                 )}
 
-                {/* Play button when no video playing */}
                 {!showVideo && trailer && (
                   <button
                     onClick={() => setShowVideo(true)}
@@ -175,7 +175,6 @@ export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheet
                   </button>
                 )}
 
-                {/* Watch on YouTube link — bottom right when playing */}
                 {showVideo && trailer && (
                   <a
                     href={trailer.watchUrl}
@@ -190,7 +189,7 @@ export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheet
               </div>
             )}
 
-            <div className={cn("px-4 pb-8", backdrop ? "-mt-16" : "pt-2")}>
+            <div className={cn("px-4 pb-8 relative z-10", backdrop ? "-mt-16" : "pt-2")}>
               <div className="flex gap-4">
                 {/* poster */}
                 <div className="shrink-0 w-24 aspect-[2/3] rounded-lg overflow-hidden shadow-xl relative">
@@ -222,7 +221,6 @@ export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheet
                         <span>{rating}</span>
                       </div>
                     )}
-                    {/* Trailer link when neither backdrop nor video section is shown */}
                     {trailer && !backdrop && !trailer.embedUrl && (
                       <a
                         href={trailer.watchUrl}
@@ -339,6 +337,18 @@ export function MovieDetailSheet({ movie, open, onOpenChange }: MovieDetailSheet
                 <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground py-2">
                   <span>Marked as not interested</span>
                   <button onClick={() => removeMutation.mutate(movie.id)} className="text-primary hover:underline">Undo</button>
+                </div>
+              )}
+
+              {/* Star rating — only for watched movies */}
+              {status === "watched" && (
+                <div className="mt-4 flex flex-col items-center gap-2">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Your rating</p>
+                  <StarRating
+                    value={currentEntry?.rating ?? null}
+                    onChange={(r) => rateMutation.mutate({ movieId: movie.id, rating: r })}
+                    size="md"
+                  />
                 </div>
               )}
             </div>

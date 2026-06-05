@@ -71,6 +71,7 @@ export function useAddToWatchlist() {
         status: "want_to_watch",
         added_at: new Date().toISOString(),
         watched_at: null,
+        rating: null,
         movie: {
           ...movie,
           is_trending: false,
@@ -180,6 +181,7 @@ export function useMarkNotInterested() {
           status: "not_interested",
           added_at: new Date().toISOString(),
           watched_at: null,
+          rating: null,
           movie: {
             ...movie,
             is_trending: false,
@@ -206,6 +208,40 @@ export function useMarkNotInterested() {
       queryClient.invalidateQueries({ queryKey: ["watchlist"] });
     },
   });
+}
+
+export function useWatchlistEntry(movieId: number): WatchlistEntry | undefined {
+  const { data } = useWatchlist()
+  return data?.find((e) => e.movie_id === movieId)
+}
+
+export function useRateMovie() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ movieId, rating }: { movieId: number; rating: number | null }) => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("Not authenticated")
+      const { error } = await supabase
+        .from("watchlist")
+        .update({ rating })
+        .eq("user_id", user.id)
+        .eq("movie_id", movieId)
+      if (error) throw error
+    },
+    onMutate: async ({ movieId, rating }) => {
+      await queryClient.cancelQueries({ queryKey: ["watchlist"] })
+      const previous = queryClient.getQueryData<WatchlistEntry[]>(["watchlist"])
+      queryClient.setQueryData<WatchlistEntry[]>(["watchlist"], (old) =>
+        old?.map((e) => e.movie_id === movieId ? { ...e, rating } : e) ?? []
+      )
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(["watchlist"], context.previous)
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["watchlist"] }),
+  })
 }
 
 export function useRemoveFromWatchlist() {

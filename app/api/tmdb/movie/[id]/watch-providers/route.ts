@@ -16,30 +16,37 @@ export async function GET(
   }
 
   const res = await fetch(
-    `https://api.themoviedb.org/3/movie/${id}/videos?language=en-US`,
+    `https://api.themoviedb.org/3/movie/${id}/watch/providers`,
     { headers: { Authorization: `Bearer ${tmdbToken}` }, next: { revalidate: 86400 } }
   )
 
   if (!res.ok) {
-    console.error(`TMDB videos fetch failed: ${res.status}`)
+    console.error(`TMDB watch/providers fetch failed: ${res.status}`)
     return NextResponse.json({ error: "Internal server error" }, { status: res.status })
   }
 
   const data = await res.json()
 
-  const youtube = (data.results ?? []).filter((v: { site: string }) => v.site === "YouTube")
-  const byOfficial = (a: { official: boolean }, b: { official: boolean }) => Number(b.official) - Number(a.official)
+  // Prefer IN, fall back to US, then GB
+  const regions = ["IN", "US", "GB"]
+  let providers: { provider_id: number; provider_name: string; logo_path: string }[] = []
 
-  // Prefer trailers; fall back to teasers if none exist
-  let trailers = youtube
-    .filter((v: { type: string }) => v.type === "Trailer")
-    .sort(byOfficial)
-
-  if (trailers.length === 0) {
-    trailers = youtube
-      .filter((v: { type: string }) => v.type === "Teaser")
-      .sort(byOfficial)
+  for (const region of regions) {
+    const regionData = data.results?.[region]
+    if (regionData?.flatrate?.length) {
+      providers = regionData.flatrate.slice(0, 5)
+      break
+    }
   }
 
-  return NextResponse.json({ trailers })
+  // JustWatch deep-link for the best matched region
+  let justWatchLink: string | null = null
+  for (const region of regions) {
+    if (data.results?.[region]?.link) {
+      justWatchLink = data.results[region].link
+      break
+    }
+  }
+
+  return NextResponse.json({ providers, justWatchLink })
 }

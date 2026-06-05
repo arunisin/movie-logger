@@ -242,3 +242,7 @@ ALTER TABLE profiles
 -- Multiple admins support
 ALTER TABLE profiles
   ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false;
+
+-- Personal star rating on watched movies (1-5)
+ALTER TABLE watchlist
+  ADD COLUMN IF NOT EXISTS rating SMALLINT CHECK (rating >= 1 AND rating <= 5);
