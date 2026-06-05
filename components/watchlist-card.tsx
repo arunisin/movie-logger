@@ -5,6 +5,7 @@ import { Check, Bookmark } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { posterUrl, releaseYear } from "@/lib/tmdb"
 import type { WatchlistEntry } from "@/lib/types"
+import { StarRating } from "@/components/star-rating"
 
 function getDaysUntilRelease(releaseDate: string | null): number | null {
   if (!releaseDate) return null
@@ -133,6 +134,13 @@ export function WatchlistCard({ entry, onClick }: WatchlistCardProps) {
               : "ring-amber-500/50"
           )}
         />
+      )}
+
+      {/* Star rating for watched movies */}
+      {entry.status === "watched" && entry.rating && (
+        <div className="absolute bottom-7 left-2 flex items-center gap-0.5">
+          <StarRating value={entry.rating} readonly size="sm" />
+        </div>
       )}
     </div>
   )

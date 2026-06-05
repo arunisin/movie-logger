@@ -32,6 +32,24 @@ export function useSearchMovies(query: string) {
   });
 }
 
+export function useWatchProviders(movieId: number | null) {
+  return useQuery({
+    queryKey: ["watch-providers", movieId],
+    queryFn: async () => {
+      const res = await fetch(`/api/tmdb/movie/${movieId}/watch-providers`)
+      if (!res.ok) return { providers: [], justWatchLink: null }
+      const data = await res.json()
+      return {
+        providers: data.providers as { provider_id: number; provider_name: string; logo_path: string }[],
+        justWatchLink: (data.justWatchLink as string) ?? null,
+      }
+    },
+    enabled: movieId !== null,
+    staleTime: 1000 * 60 * 60 * 24,
+    gcTime: 1000 * 60 * 60 * 24 * 7,
+  })
+}
+
 export function useDiscoverMovies(
   lang: string | null,
   sort: DiscoverSort,

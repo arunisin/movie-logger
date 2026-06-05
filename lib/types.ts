@@ -44,6 +44,7 @@ export interface WatchlistEntry {
   status: "want_to_watch" | "watched" | "not_interested"
   added_at: string
   watched_at: string | null
+  rating: number | null
   movie: Movie
 }
 
