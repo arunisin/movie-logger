@@ -82,6 +82,11 @@ export function WatchlistCard({ entry, onClick }: WatchlistCardProps) {
 
       {/* Bottom content */}
       <div className="absolute inset-x-0 bottom-0 p-3 pointer-events-none">
+        {entry.status === "watched" && entry.rating && (
+          <div className="mb-1">
+            <StarRating value={entry.rating} readonly size="sm" />
+          </div>
+        )}
         <p className="text-white text-sm font-semibold leading-tight line-clamp-2">
           {entry.movie.title}
         </p>
@@ -136,12 +141,7 @@ export function WatchlistCard({ entry, onClick }: WatchlistCardProps) {
         />
       )}
 
-      {/* Star rating for watched movies */}
-      {entry.status === "watched" && entry.rating && (
-        <div className="absolute bottom-7 left-2 flex items-center gap-0.5">
-          <StarRating value={entry.rating} readonly size="sm" />
-        </div>
-      )}
+
     </div>
   )
 }
