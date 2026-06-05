@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { useEffect, useState } from "react"
+import { usePathname, useRouter } from "next/navigation"
+import { useEffect, useState, useTransition } from "react"
 import { Compass, BookMarked, User, ShieldCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -14,6 +14,9 @@ const BASE_NAV_ITEMS = [
 
 export function BottomNav() {
   const pathname = usePathname()
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  const [pendingHref, setPendingHref] = useState<string | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
@@ -23,32 +26,40 @@ export function BottomNav() {
       .catch(() => setIsAdmin(false))
   }, [])
 
+  // Clear pending state when navigation settles
+  useEffect(() => {
+    if (!isPending) setPendingHref(null)
+  }, [isPending])
+
   const navItems = isAdmin
     ? [...BASE_NAV_ITEMS, { href: "/admin", label: "Admin", icon: ShieldCheck }]
     : BASE_NAV_ITEMS
 
+  const handleTap = (href: string) => {
+    if (pathname.startsWith(href)) return
+    setPendingHref(href)
+    startTransition(() => router.push(href))
+  }
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-around border-t border-border bg-card/95 backdrop-blur-sm pb-safe">
       {navItems.map(({ href, label, icon: Icon }) => {
-        const active = pathname.startsWith(href)
+        const active = (pendingHref ?? pathname).startsWith(href)
         return (
-          <Link
+          <button
             key={href}
-            href={href}
+            onClick={() => handleTap(href)}
             className={cn(
               "flex flex-col items-center gap-0.5 px-5 py-3 text-xs transition-colors",
               active ? "text-primary" : "text-muted-foreground hover:text-foreground"
             )}
           >
             <Icon
-              className={cn(
-                "size-5 transition-transform",
-                active && "scale-110"
-              )}
+              className={cn("size-5 transition-transform", active && "scale-110")}
               strokeWidth={active ? 2.5 : 1.8}
             />
             <span className={cn("font-medium", active ? "text-primary" : "")}>{label}</span>
-          </Link>
+          </button>
         )
       })}
     </nav>
